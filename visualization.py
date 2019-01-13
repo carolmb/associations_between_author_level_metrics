@@ -32,7 +32,7 @@ def filter_window(net,begin,delta):
     subgraph = net.subgraph(valid_vtxs)
     return subgraph
 
-def author_colabs_author(net,begin,delta):
+def author_colabs_author(net,begin,delta,valid_authors):
     print('colabs begin',begin,'delta',delta)
     papers = net.vs
     colabs = defaultdict(lambda:0)
@@ -40,6 +40,7 @@ def author_colabs_author(net,begin,delta):
         if paper['year'] >= begin and paper['year'] < begin+delta:
             # print(paper['year'])
             authors = paper['authors_idx'].split(',')
+            authors = [a for a in authors if a in valid_authors]
             N = len(authors)
             for a0 in authors:
                 for a1 in authors:
@@ -48,40 +49,65 @@ def author_colabs_author(net,begin,delta):
                     colabs[frozenset({a0,a1})] += 1/N
     print('colabs',len(colabs))
     colabs = dict(colabs)
-    # print(colabs)
+    print(colabs)
     return colabs
 
 def author_cites_author(net,begin,delta):
+    print('authors_cites_author')
+
     small_net = filter_window(net,begin,delta)
     authors_idx = small_net.vs['authors_idx']
-    authors = set()
+    authors = []
     for a_list in authors_idx:
         a_list = a_list.split(',')
-        for a in a_list:
-            authors.add(a)
+        authors += a_list
 
-    authors_list = list(authors)
-    print('total of authors',len(authors_list))
+    try:
+        authors.remove('')
+    except:
+        print('all valid authors')
+        pass
+
+    authors = np.asarray(authors)
+    unique_authors,count_authors = np.unique(authors,return_counts=True)
+
+    '''
+    only the authors with 20 or more publications
+    '''
+    valid_idxs = count_authors[count_authors>10]
+    unique_authors = unique_authors[valid_idxs]
+
+    print('total of authors',len(unique_authors))
     citation_net = Graph(directed=True)
-    citation_net.add_vertices(len(authors_list))
-    citation_net.vs['name'] = authors_list
+    citation_net.add_vertices(len(unique_authors))
+    citation_net.vs['name'] = unique_authors
 
     papers = small_net.vs
+    print('total of papers',small_net.vcount())
     edges = defaultdict(lambda:0)
     for p in papers:
         author_idxs = p['authors_idx'].split(',')
-        citing = small_net.neighbors(p,mode='out')
-        citing = [small_net.vs[c] for c in citing]
+        author_idxs = [a for a in author_idxs if a in unique_authors]
+        if len(author_idxs) > 0:
+            # print('author_idxs',author_idxs)
 
-        cited_idx = []
-        for paper_cited in citing:
-            idxs = paper_cited['authors_idx'].split(',')
-            cited_idx += idxs
-        for a in author_idxs:
-            for c in cited_idx:
-                if a == c:
-                    continue
-                edges[(a,c)] += 1
+            citing = small_net.neighbors(p,mode='out')
+            citing = [small_net.vs[c] for c in citing]
+
+            cited_idx = []
+            for paper_cited in citing:
+                idxs = paper_cited['authors_idx'].split(',')
+                idxs = [i for i in idxs if i in unique_authors]
+                cited_idx += idxs
+        
+            if len(cited_idx) > 0:
+                # print('cited_idx',cited_idx)
+        
+                for a in author_idxs:
+                    for c in cited_idx:
+                        if a == c:
+                            continue
+                        edges[(a,c)] += 1
     
     edges = np.asarray(list(edges.items()))
     unique_edges = edges[:,0]
@@ -92,9 +118,14 @@ def author_cites_author(net,begin,delta):
     citation_net.add_edges(unique_edges)
     citation_net.es['weight'] = count
 
-    return citation_net
+    citation_net = citation_net.components().giant()
+    
+    return citation_net, unique_authors
 
-def calculate_repre(net,mode='out'): # cited or be cited
+'''
+generate the vector presentation
+'''
+def repre_attribute(net,mode='out'): # cited or be cited
     N = len(net.vs)
     for v in net.vs:
         repre = dict()
@@ -112,6 +143,8 @@ def calculate_repre(net,mode='out'): # cited or be cited
             repre[pos] = weight
 
         v['repre'] = repre
+
+    print('repre attributes',net.vs.attributes())
 
     # for idx,row in enumerate(repre):
     #     net.vs[idx]['repre'] = row
@@ -155,7 +188,7 @@ def plot_sim_vs_colab(sims,forces,begin):
     keys = keys1 & keys2
     print('total force',len(keys2),'commum keys',len(keys))
 
-    keys = random.sample(keys,100000)
+    # keys = random.sample(keys,100000)
 
     for key in keys:
         point_y.append(forces[key])
