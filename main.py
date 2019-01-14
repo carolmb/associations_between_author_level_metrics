@@ -3,6 +3,7 @@ from igraph import *
 import visualization
 import pickle
 import threading
+import numpy as np
 
 begins = range(2000,2006)
 sim_delta = 10
@@ -10,38 +11,56 @@ colab_delta = 10
 
 net = xnet.xnet2igraph('data/citation_network.xnet')
 
+titles = net.vs['title']
+unique_titles,count_titles = np.unique(titles,return_counts=True)
+
+idxs = np.argsort(count_titles)
+# print(count_titles[idxs[-100:]])
+print(net.vcount(),net.ecount())
+invalid_vtxs = net.vs.select(authors_idx_eq='')
+net.delete_vertices(invalid_vtxs)
+print(net.vcount(),net.ecount())
+
+invalid_vtxs = net.vs.select(abstract_eq='')
+net.delete_vertices(invalid_vtxs)
+print(net.vcount(),net.ecount())
+
+invalid_vtxs = net.vs.select(title_eq='')
+net.delete_vertices(invalid_vtxs)
+print(net.vcount(),net.ecount())
+
+invalid_vtxs = net.vs.select(title_eq='CORRECTION')
+net.delete_vertices(invalid_vtxs)
+print(net.vcount(),net.ecount())
+
 def plot(begin,sim_delta,colab_delta,net=None):
     '''
-    generates the citation net considering an interval of time
+    generates the citation (a1 cites a2) net considering an interval of time
     '''	
     citation_net,valid_authors = visualization.author_cites_author(net,begin,sim_delta)
-    xnet.igraph2xnet(citation_net,'data/citation_net_authors'+str(begin)+'.xnet')
-
-    # citation_net = xnet.xnet2igraph('data/citation_net_authors'+str(begin)+'.xnet')
     
     citation_net = visualization.repre_attribute(citation_net)
-    with open('temp/citation_net_'+str(begin), 'wb') as output:
-        pickle.dump(citation_net, output, pickle.HIGHEST_PROTOCOL)
+    # with open('temp/citation_net_'+str(begin), 'wb') as output:
+    #     pickle.dump(citation_net, output, pickle.HIGHEST_PROTOCOL)
+
+    with open('temp/citation_net_'+str(begin),'rb') as input:
+    	citation_net = pickle.load(input)
 
     '''
-    coauthorship net generated given the citation network and an interval of time
+    coauthorship pairs considering the original citation network, an interval of time and the valid authors
     '''
     force = visualization.author_colabs_author(net,begin+sim_delta,colab_delta,valid_authors)
     with open('temp/force_'+str(begin), 'wb') as output:
         pickle.dump(force, output, pickle.HIGHEST_PROTOCOL)
 
-    # with open('citation_net','rb') as input:
-        # citation_net = pickle.load(input)
     # with open('temp/force_'+str(begin),'rb') as input:
     #     force = pickle.load(input)
 
-    valid_pairs = list(force.keys())
-    sims = visualization.calculate_sim(citation_net,valid_pairs)
+    coauthorship_pairs = list(force.keys())
+    print('coauthorship_pairs',coauthorship_pairs)
+    sims = visualization.calculate_sim(citation_net,coauthorship_pairs)
     with open('temp/sims_'+str(begin), 'wb') as output:
         pickle.dump(sims, output, pickle.HIGHEST_PROTOCOL)
-
-    # with open('temp/sims_'+str(begin),'rb') as input:
-    #     sims = pickle.load(input)
     
     visualization.plot_sim_vs_colab(sims,force,begin)
 

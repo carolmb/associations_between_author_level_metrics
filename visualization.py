@@ -32,26 +32,6 @@ def filter_window(net,begin,delta):
     subgraph = net.subgraph(valid_vtxs)
     return subgraph
 
-def author_colabs_author(net,begin,delta,valid_authors):
-    print('colabs begin',begin,'delta',delta)
-    papers = net.vs
-    colabs = defaultdict(lambda:0)
-    for paper in papers:
-        if paper['year'] >= begin and paper['year'] < begin+delta:
-            # print(paper['year'])
-            authors = paper['authors_idx'].split(',')
-            authors = [a for a in authors if a in valid_authors]
-            N = len(authors)
-            for a0 in authors:
-                for a1 in authors:
-                    if a0 == a1:
-                        break
-                    colabs[frozenset({a0,a1})] += 1/N
-    print('colabs',len(colabs))
-    colabs = dict(colabs)
-    print(colabs)
-    return colabs
-
 def author_cites_author(net,begin,delta):
     print('authors_cites_author')
 
@@ -62,19 +42,18 @@ def author_cites_author(net,begin,delta):
         a_list = a_list.split(',')
         authors += a_list
 
-    try:
-        authors.remove('')
-    except:
-        print('all valid authors')
-        pass
+    authors = [a for a in authors if not a == '']
 
     authors = np.asarray(authors)
     unique_authors,count_authors = np.unique(authors,return_counts=True)
 
+    # print(len(unique_authors))
+    # print(np.sort(count_authors)[-100:])
+
     '''
     only the authors with 20 or more publications
     '''
-    valid_idxs = count_authors[count_authors>10]
+    valid_idxs = count_authors>20
     unique_authors = unique_authors[valid_idxs]
 
     print('total of authors',len(unique_authors))
@@ -118,9 +97,27 @@ def author_cites_author(net,begin,delta):
     citation_net.add_edges(unique_edges)
     citation_net.es['weight'] = count
 
-    citation_net = citation_net.components().giant()
-    
     return citation_net, unique_authors
+
+def author_colabs_author(net,begin,delta,valid_authors):
+    print('colabs begin',begin,'delta',delta)
+    papers = net.vs
+    colabs = defaultdict(lambda:0)
+    for paper in papers:
+        if paper['year'] >= begin and paper['year'] < begin+delta:
+            # print(paper['year'])
+            authors = paper['authors_idx'].split(',')
+            authors = [a for a in authors if a in valid_authors]
+            N = len(authors)
+            for a0 in authors:
+                for a1 in authors:
+                    if a0 == a1:
+                        break
+                    colabs[frozenset({a0,a1})] += 1/N
+    print('colabs',len(colabs))
+    colabs = dict(colabs)
+    print(colabs)
+    return colabs
 
 '''
 generate the vector presentation
@@ -153,7 +150,6 @@ def repre_attribute(net,mode='out'): # cited or be cited
     return net
 
 def calculate_sim(net,valid_pairs):
-    valid_pairs = set(valid_pairs)
     sims = dict()
     authors = net.vs
     error = 0
@@ -166,7 +162,7 @@ def calculate_sim(net,valid_pairs):
             # print(a0,a1)
             s = cos_sim(v0,v1)
             # print('sim',s)
-            sims[(a0,a1)] = s
+            sims[frozenset([a0,a1])] = s
             del v0
             del v1
             i += 1
@@ -174,40 +170,37 @@ def calculate_sim(net,valid_pairs):
                print(i,end='\r')
         except Exception as e:
             error += 1
-            # print(e,end='\r')
+            print(e)
     print('total missing',error)
     return sims
 
 def plot_sim_vs_colab(sims,forces,begin):
-    point_x = []
-    point_y = []
-
+    
     keys1 = set(sims.keys())
-    keys1 = set([frozenset(k) for k in keys1])
+    print(keys1)
     keys2 = set(forces.keys())
+    print(keys2)
     keys = keys1 & keys2
-    print('total force',len(keys2),'commum keys',len(keys))
+    print('commum keys',len(keys))
 
     # keys = random.sample(keys,100000)
-
+    
+    point_x = []
+    point_y = []
     for key in keys:
         point_y.append(forces[key])
+        point_x.append(sims[key])
 
-        key = tuple(key)
-        try:
-            point_x.append(sims[tuple(key)])
-        except:
-            point_x.append(sims[(key[1],key[0])])
-    
     point_x = np.asarray(point_x)
     point_y = np.asarray(point_y)
 
-    idxs = np.argsort(point_y)[:-100]
-    print(idxs)
+    idxs = np.argsort(point_x)
     point_x = point_x[idxs]
     point_y = point_y[idxs]
 
     plt.scatter(point_x,point_y,alpha=0.5)
+    plt.xlabel('similarity')
+    plt.ylabel('force (colaboration)')
     # heatmap, xedges, yedges = np.histogram2d(point_x,point_y,bins=50)
     # extent = [xedges[0],xedges[-1],yedges[0],yedges[-1]]
 
