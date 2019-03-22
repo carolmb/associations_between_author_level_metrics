@@ -5,6 +5,8 @@ import numpy as np
 import glob
 import ast
 import matplotlib.pyplot as plt
+import time
+import itertools
 
 def plot_frequency(xs,ys,xlabel,name,islog=False):
 	plt.figure(figsize=(4,3))
@@ -31,32 +33,39 @@ def get_freq(info):
 
 def get_number_of_papers_by_colab(net):
 	papers = net.es['papers']
-	papers = [ast.literal_eval(ps) for ps in papers]
-	
+	papers = [np.asarray(ast.literal_eval(ps)) for ps in papers]
+
 	papers_len = [len(ps) for ps in papers]
 	return get_freq(papers_len)
 
 def get_papers_citation_count(net):
-	papers = net.es['papers']
-	papers = [ast.literal_eval(ps) for ps in papers]
-	
-	papers_ids = set([p for ps in papers for p in ps])
-	papers_citation_count = citation_net.vs.select(id_in=papers_ids)['times_cited']
+    papers = net.es['papers']
+    papers = [ast.literal_eval(ps) for ps in papers]
 
-	return get_freq(papers_citation_count)
+    papers_ids = set(itertools.chain.from_iterable(papers))
+    print('vertices',net.vcount(),'edges',net.ecount())
+    papers_citation_count = citation_net.vs.select(id_in=papers_ids)['times_cited']
+
+    return get_freq(papers_citation_count)
 
 def time_series(filenames_seq,years):
-	prefix = 'pdfs/'
-	means = []
-	
-	for filenames in filenames_seq:
-		means.append([])
-		for f in filenames:
-			net = xnet.xnet2igraph(f)
-			_,_,citation_count = get_papers_citation_count(net)
-			means[-1].append(np.mean(citation_count))
-			del net
-	plot_line(years,means,'citation mean',prefix + 'citation_mean.pdf')
+    prefix = 'pdfs/'
+    means = []
+
+    for filenames in filenames_seq:
+        means.append([])
+        for f in filenames:
+            print(f)
+            t0 = time.time()
+            net = xnet.xnet2igraph(f)
+            t1 = time.time()
+            print('reading graph from file',t1-t0)
+            _,_,citation_count = get_papers_citation_count(net)
+            t2 = time.time()
+            print('papers citation count',t2-t1)
+            means[-1].append(np.mean(citation_count))
+            print()
+    plot_line(years,means,'citation mean',prefix + 'citation_mean.pdf')
 
 def plot_by_year(filenames):
 	prefix = 'pdfs/'
@@ -81,13 +90,14 @@ citation_net_name = 'citation_net_ge_1990.xnet'
 citation_net = xnet.xnet2igraph(citation_net_name)
 
 filenames_seq = []
-headers = ['colabs/basic_colab_cut/*deleted_basic.xnet','colabs/basic_colab_cut/*selected_basic.xnet']
+headers = ['colabs/basic_colab_cut/*deleted_basic.xnet']#,'colabs/basic_colab_cut/*selected_basic.xnet']
 
 for header in headers:
 	filenames = glob.glob(header)
 	filenames = sorted(filenames)
 	filenames_seq.append(filenames)
 
-years = list(range(1990,2007))
+years = list(range(1990,2011))
+print(years)
 print(filenames_seq)
 time_series(filenames_seq,years)
