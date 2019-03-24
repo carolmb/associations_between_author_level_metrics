@@ -1,23 +1,18 @@
-#include <iostream>
-#include <igraph.h>
-#include <fstream>
-#include <string>
+#include "graph.h"
 
-void read_xnet (std::string filename) {
-    std::ifstream input (filename);
-    std::string line;
-    if (input.is_open()) {
-        while (std::getline(input,line)) {
-            std::cout << line << std::endl;
-        }
-        input.close();
-    } else {
-        std::cout << "deu ruim" << std::endl;
-    }
+void Graph::print_field(string field) {
+	vector<Type> *values = get_field_values(field);
+	for (vector<Type>::iterator it = values->begin() ; it != values->end(); it++) {
+		cout << get_Type_string(*it) << endl;
+	}
 }
 
-int main() {
-    std::string filename = "test.xnet";
-    read_xnet(filename);
-    return 0;
+vector<Type>* Graph::get_field_values(string field) {
+	int n_fields = field_names.size();
+	for (int i = 0; i < n_fields; i++) {
+		if (!field_names[i].compare(field)) {
+			vector<Type> *values = &field_values[i];
+			return values;
+		}
+	}
 }
