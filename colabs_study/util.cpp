@@ -1,66 +1,99 @@
 #include "util.h"
 
-string get_Type_string(Type value) {
-	try {
-    	double temp = get<double>(value); // w contains int, not float: will throw
-		return to_string(temp);
-	} catch (const std::bad_variant_access&) {}
-
-	try {
-    	string temp = get<string>(value); // w contains int, not float: will throw
-		return temp;
-	} catch (const std::bad_variant_access&) {}
-
+bool is_alpnum(string str) {
+	return find_if(str.begin(),str.end(),[](char c) { return !(isalnum(c) || (c == ' ') || (c == '.')); }) == str.end();
 }
 
-std::ostream &operator<<(std::ostream &os, Graph const &g) { 
-	string output = "Number of vertices: " + to_string(g.n_vtxs) + " Number of edges: " + to_string(g.n_edges) + "\n";
-	if (g.n_edges)
- 		output += "Edge list:\n";
-	for (int i = 0; i < g.n_edges; i++) {
-		if (i < 10 || i > g.n_edges - 10) {
-			Edge e = g.edges[i];
-			output += e.tostring() + ", ";	
-		}
-	}
-
-	int n_fields = g.field_names.size();
-	if (n_fields) {
-		output += "Fields and values:\n";
-	}
-
-
-	for (int i = 0; i < n_fields; i++) {
-		string field_name = g.field_names[i];
-		output += field_name + ": ";
-		vector<Type> field_values = g.field_values[i];
-		int n_values = field_values.size();
-		
-		for (int i = 0; i < n_values-1; i++) {
-			output += get_Type_string(field_values[i]) + ", ";
-		}
-		output += get_Type_string(field_values[n_values-1]) + "\n";
-	}
-    
-    return os << output;
-}
-
-vector<string> string2vectorofstring(string &str) {
+vector<string> split_str(string &str, char d) {
 	istringstream ss(str);
 	string token;
 
 	vector<string> output;
-	while(getline(ss, token, ',')) {
+	while(getline(ss, token, d)) {
 		output.push_back(token);
 	}
 	return output;
 }
 
-vector<vector<string> > string2vectorofvector(vector<string> &vec) {
+vector<vector<string> > string2vectorofvector(vector<string> *vec, char d) {
 	vector<vector<string> > output;
-	for (vector<string>::iterator it = vec.begin(); it != vec.end(); it++) {
-		vector<string> current = string2vectorofstring(*it);
+	for (vector<string>::iterator it = vec->begin(); it != vec->end(); it++) {
+		vector<string> current = split_str(*it, d);
 		output.push_back(current);
 	}
 	return output;
+}
+
+void get_unique_authors(vector<vector<string> > &authors_name_values,
+	vector<vector<string> > &authors_idx_values,
+	set<pair<string,long long int> > &unique_authors) {
+	
+	auto set_it = unique_authors.insert(unique_authors.begin(), make_pair("-1",-1)); 
+
+	vector<vector<string> >::iterator name_vec_it = authors_name_values.begin();
+	vector<vector<string> >::iterator idx_vec_it = authors_idx_values.begin();
+	
+	while(name_vec_it != authors_name_values.end() && idx_vec_it != authors_idx_values.end()) {
+	    vector<string>::iterator name_it = name_vec_it->begin();
+	    vector<string>::iterator idx_it = idx_vec_it->begin();
+	    
+	    while(name_it != name_vec_it->end() && idx_it != idx_vec_it->end()) {
+			pair<string, long long int> p = make_pair(*name_it,stod(*idx_it));
+			set_it = unique_authors.insert(set_it,p);
+			name_it ++;
+			idx_it ++;
+		}
+		name_vec_it ++;
+		idx_vec_it ++;
+
+	}
+	cout << "Unique authors size " << unique_authors.size() << endl;
+}
+
+void desambiguation(Graph *g) {
+	vector<string> *authors_name = g->get_field_values_str("authors_name");
+    vector<string> *authors_idx = g->get_field_values_str("authors_idx");
+    vector<vector<string> > authors_name_values = string2vectorofvector(authors_name, ';');
+    vector<vector<string> > authors_idx_values = string2vectorofvector(authors_idx, ',');
+
+	set<pair<string,long long int> > unique_authors;
+    get_unique_authors(authors_name_values, authors_idx_values, unique_authors);
+
+    int i = 0;
+    map<string,set<string> > roots;
+    for (set<pair<string,long long int> >::iterator it = unique_authors.begin(); it != unique_authors.end(); it++) {
+    	string name = it->first;
+    	if (!is_alpnum(name)) {
+    		i ++;
+    		continue;
+    	}
+    	vector<string> name_spl = split_str(name, ' ');
+		if (name_spl.size() > 1) {
+			string key = name_spl[name_spl.size()-1] + ". " + name_spl[0][0] + ".";
+			
+			string middle = "";
+			for (int i = 1; i < name_spl.size()-1; i++) {
+				middle += name_spl[i][0] + ". ";
+			}
+			if (roots.find(key) == roots.end()) {
+				roots[key] = set<string>();
+			}
+			if (middle.size()) {
+				roots[key].insert(middle);
+			}
+		} else {
+			i ++;
+		}
+    }
+
+    for (map<string,set<string> >::iterator it = roots.begin(); it != roots.end(); it++) {
+    	cout << it->first << ": ";
+    	for (set<string>::iterator mid = (it->second).begin(); mid != (it->second).end(); mid++) {
+    		cout << *mid << ", ";
+    	}
+    	cout << (it->second).size() << endl;
+    }
+
+    cout << "Total roots " << roots.size() << endl; 
+    cout << "Total names with 1 word len " << i << endl;
 }

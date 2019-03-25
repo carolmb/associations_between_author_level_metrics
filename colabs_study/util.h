@@ -5,21 +5,27 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <variant>
 #include <sstream>
 #include <iomanip>
+#include <set>
+#include <utility>
+#include <map>
+#include <algorithm>
 
 #include "graph.h"
 
 using namespace std;
 
-using Type = variant<double, string>;
-
 class Graph;
 
-string get_Type_string(Type value);
-std::ostream &operator<<(std::ostream &os, Graph const &g);
+bool is_alpnum(string);
+vector<string> split_str(string &, char);
+vector<vector<string> > string2vectorofvector(vector<string> *, char);
 
-vector<string> string2vectorofstring(string &str);
-vector<vector<string> > string2vectorofvector(vector<string> &vec);
+void get_unique_authors(vector<vector<string> > &,
+	vector<vector<string> > &,
+	set<pair<string,long long int> > &);
+
+void desambiguation(Graph *);
+
 #endif

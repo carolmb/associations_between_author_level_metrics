@@ -9,7 +9,7 @@ int main() {
     string filename = "../data/citation_network.xnet";
     // string filename = "test3.xnet";
     Graph *g = xnet2graph(filename);
-    vector<Type> authors_name = g->get_field_values("authors_name_v");
-    // cout << *g;
+    cout << "Graph " << g->tostring() << endl;
+    desambiguation(g);
     return 0;
 }

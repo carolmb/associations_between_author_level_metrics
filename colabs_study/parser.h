@@ -13,15 +13,13 @@
 
 using namespace std;
 
-using Type = variant<double, string>;
+int read_vertices(ifstream &, vector<string> &);
+int read_edges(ifstream &, vector<Edge> &, bool &);
 
-string read_value(Type value);
-std::ostream &operator<<(std::ostream &os, Graph const &g);
-int read_vertices(ifstream &input, vector<Type> &names);
-int read_edges(ifstream &input, vector<Edge> &edges, bool &isdirected);
-void read_field(ifstream &input, int n_elements, string field_type, vector<Type> &field_values);
-void read_extra_fields(ifstream &input, int n_vtxs, int n_edges, vector<string> &field_names,
-	vector<vector<Type> > &field_values);
+void read_field_values(ifstream &, int, string, vector<double> &);
+void read_field_values(ifstream &, int, string, vector<string> &);
+void read_extra_fields(ifstream &, int, int, vector<string> &,
+	vector<vector<string> > &, vector<string> &, vector<vector<double> > &);
 Graph* xnet2graph(string filename);
 
 #endif
