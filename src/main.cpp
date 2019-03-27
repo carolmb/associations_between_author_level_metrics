@@ -6,10 +6,9 @@
 using string = std::string;
 
 int main() {
-    string filename = "../data/citation_network.xnet";
+    string filename = "data/citation_network.xnet";
     // string filename = "test3.xnet";
     Graph *g = xnet2graph(filename);
-    cout << "Graph " << g->tostring() << endl;
-    desambiguation(g);
+    cout << "Graph " << g->tostring();
     return 0;
 }

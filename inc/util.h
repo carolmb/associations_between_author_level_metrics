@@ -8,9 +8,12 @@
 #include <sstream>
 #include <iomanip>
 #include <set>
+#include <unordered_set>
 #include <utility>
 #include <map>
 #include <algorithm>
+#include <numeric>
+#include <cstring>
 
 #include "graph.h"
 
@@ -20,12 +23,10 @@ class Graph;
 
 bool is_alpnum(string);
 vector<string> split_str(string &, char);
-vector<vector<string> > string2vectorofvector(vector<string> *, char);
+vector<vector<string> > split_vec(vector<string> *, char);
 
-void get_unique_authors(vector<vector<string> > &,
-	vector<vector<string> > &,
-	set<pair<string,long long int> > &);
+template<class T>
+set<T> get_unique_authors(vector<vector<T> > &);
 
-void desambiguation(Graph *);
-
+Graph* create_colab(Graph *, int, int);
 #endif
