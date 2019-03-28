@@ -96,8 +96,10 @@ void add_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
 		input.ignore();
 
 		if (!field_type.compare("s")) {
+			
 			vector<string> values;
 			read_field_values(input,n_elements,field_type,values);
+			continue;
 			if (!header.compare("#v")) {
 				add_string_attr_vtx(g,values,field_name);	
 			} else {
@@ -111,8 +113,8 @@ void add_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
 			} else {
 				add_numeric_attr_edge(g,values,field_name);
 			}
-			
 		}
+		cout << "aaaaaaaaaaaaaa";
 	}
 }
 
@@ -169,7 +171,7 @@ void add_numeric_attr_vtx(igraph_t &g, vector<double> &attr, string field) {
 		VECTOR(values)[pos]=*it;
 		pos++;
 	}
-	igraph_cattribute_VAN_setv(&g,field.c_str(),&values);
+	SETVANV(&g,field.c_str(),&values);
 }
 
 void add_string_attr_vtx(igraph_t &g, vector<string> &attr, string field) {
@@ -183,6 +185,7 @@ void add_string_attr_vtx(igraph_t &g, vector<string> &attr, string field) {
 		pos++;
 	}
 	igraph_cattribute_VAS_setv(&g,field.c_str(),&values);
+	cout << attr.size() << endl;
 }
 
 igraph_t xnet2igraph(string filename) {
@@ -193,6 +196,7 @@ igraph_t xnet2igraph(string filename) {
 
     	vector<string> names;
     	int n_vtxs = read_vertices(input,names);
+    	cout << n_vtxs << " n_vtxs" << endl;
 
     	vector<Edge> edges;
     	vector<double> weights;
