@@ -80,7 +80,7 @@ void read_field_values(ifstream &input, int n_elements, string type, vector<stri
 	}
 }
 
-void read_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
+void add_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
 	string header;
 	while (input >> header) {
 		string field_name;
@@ -98,10 +98,19 @@ void read_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
 		if (!field_type.compare("s")) {
 			vector<string> values;
 			read_field_values(input,n_elements,field_type,values);
-			
+			if (!header.compare("#v")) {
+				add_string_attr_vtx(g,values,field_name);	
+			} else {
+				add_string_attr_edge(g,values,field_name);
+			}
 		} else {
 			vector<double> values;
 			read_field_values(input,n_elements,field_type,values);
+			if (!header.compare("#v")) {
+				add_numeric_attr_vtx(g,values,field_name);	
+			} else {
+				add_numeric_attr_edge(g,values,field_name);
+			}
 			
 		}
 	}
@@ -120,15 +129,47 @@ void add_edges(igraph_t &g, int n_edges, vector<Edge> &p_edges, vector<double> &
 	igraph_add_edges(&g,&edges,0);
 
 	if (weights.size()) {
-		igraph_vector_t ws;
-		igraph_vector_init(&ws, n_edges);
-		int pos = 0;
-		for(vector<double>::iterator it = weights.begin(); it != weights.end(); it++) {
-			VECTOR(ws)[pos]=*it;
-			pos++;
-		}
-		igraph_cattribute_EAN_setv(&g,"weight",&ws);
+		add_numeric_attr_edge(g,weights,"weight");
 	}
+}
+
+void add_numeric_attr_edge(igraph_t &g, vector<double> &attr, string field) {
+	if (!attr.size())
+		return;
+	igraph_vector_t values;
+	igraph_vector_init(&values, attr.size());
+	int pos = 0;
+	for(vector<double>::iterator it = attr.begin(); it != attr.end(); it++) {
+		VECTOR(values)[pos]=*it;
+		pos++;
+	}
+	igraph_cattribute_EAN_setv(&g,field.c_str(),&values);
+}
+
+void add_string_attr_edge(igraph_t &g, vector<string> &attr, string field) {
+	if (!attr.size())
+		return;
+	igraph_strvector_t values;
+	igraph_strvector_init(&values,attr.size());
+	int pos = 0;
+	for(vector<string>::iterator it = attr.begin(); it != attr.end(); it++) {
+		igraph_strvector_set(&values,pos,it->c_str());
+		pos++;
+	}
+	igraph_cattribute_EAS_setv(&g,field.c_str(),&values);
+}
+
+void add_numeric_attr_vtx(igraph_t &g, vector<double> &attr, string field) {
+	if (!attr.size())
+		return;
+	igraph_vector_t values;
+	igraph_vector_init(&values, attr.size());
+	int pos = 0;
+	for(vector<double>::iterator it = attr.begin(); it != attr.end(); it++) {
+		VECTOR(values)[pos]=*it;
+		pos++;
+	}
+	igraph_cattribute_VAN_setv(&g,field.c_str(),&values);
 }
 
 void add_string_attr_vtx(igraph_t &g, vector<string> &attr, string field) {
@@ -144,8 +185,10 @@ void add_string_attr_vtx(igraph_t &g, vector<string> &attr, string field) {
 	igraph_cattribute_VAS_setv(&g,field.c_str(),&values);
 }
 
-igraph_t* xnet2igraph(string filename) {
+igraph_t xnet2igraph(string filename) {
     ifstream input (filename);
+    igraph_t g;		
+	
     if (input.is_open()) {
 
     	vector<string> names;
@@ -156,20 +199,17 @@ igraph_t* xnet2igraph(string filename) {
     	bool isdirected = false;
     	int n_edges = read_edges(input,edges,weights,isdirected);
 
-		igraph_t g;		
 		igraph_empty(&g,n_vtxs,isdirected);
 		add_string_attr_vtx(g,names,"names");
 		add_edges(g,n_edges,edges,weights);
 
-		read_extra_fields(g,input,n_vtxs,n_edges);
+		add_extra_fields(g,input,n_vtxs,n_edges);
 
         input.close();
-
-        return nullptr;
     } else {
         cout << "Error during file reading." << endl;
     }
-    return nullptr;
+    return g;
 }
 
 

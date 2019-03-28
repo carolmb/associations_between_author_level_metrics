@@ -1,6 +1,7 @@
 #ifndef __UTIL__
 #define __UTIL__
 
+#include <igraph.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -10,11 +11,9 @@
 #include <set>
 #include <unordered_set>
 #include <utility>
-#include <map>
 #include <algorithm>
 #include <numeric>
 #include <cstring>
-#include <igraph.h>
 
 using namespace std;
 
@@ -26,4 +25,5 @@ template<class T>
 set<T> get_unique_authors(vector<vector<T> > &);
 
 igraph_t* create_colab(igraph_t *, int, int);
+
 #endif
