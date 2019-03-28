@@ -1,7 +1,0 @@
-#vertices 3 nonweighted
-"a"
-"a"
-"a"
-#edges weighted undirected
-0 1 0.1
-1 2 0.1

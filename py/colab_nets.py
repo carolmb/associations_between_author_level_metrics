@@ -15,7 +15,10 @@ import pickle
 # In[3]:
 
 
-net = xnet.xnet2igraph('citation_net_ge_1990.xnet')
+net = xnet.xnet2igraph('../data/citation_net_ge_1990.xnet')
+
+vcount = net.vcount()
+net.vs['numeric_id'] = range(vcount)
 
 # In[5]:
 
@@ -90,10 +93,12 @@ for year in range(2010,max_year+1):
     colab_net.es['papers'] = papers
     t3 = time.time()
     print('time creating graph',t3-t2)
-    xnet.igraph2xnet(colab_net,'colabs/original/colab_'+str(year)+'_'+str(year+delta))
+    xnet.igraph2xnet(colab_net,'colabs/original/colab_'+str(year)+'_'+str(year+delta)+'_test')
     t4 = time.time()
     print('time saving',t4-t3)
     print()
+
+    break
 
 # In[ ]:
 

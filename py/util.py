@@ -83,7 +83,7 @@ def author_colabs_author(net,begin,delta,valid_authors):
         all_authors |= set(authors)
         authors = sorted(authors)
         N = len(authors)
-        paper_id = paper['id']
+        paper_id = paper['numeric_id']
 
         combinations = itertools.combinations(authors,2)
 
