@@ -43,8 +43,7 @@ def get_papers_citation_count(net):
     papers = [ast.literal_eval(ps) for ps in papers]
 
     papers_ids = set(itertools.chain.from_iterable(papers))
-    print('vertices',net.vcount(),'edges',net.ecount())
-    papers_citation_count = citation_net.vs.select(id_in=papers_ids)['times_cited']
+    papers_citation_count = citation_net.vs.select(numeric_id_in=papers_ids)['times_cited']
 
     return get_freq(papers_citation_count)
 
@@ -69,17 +68,18 @@ def time_series(filenames_seq,years):
 
 def plot_by_year(filenames):
 	prefix = 'pdfs/'
-	for f in filenames:
-		net = xnet.xnet2igraph(f)
-		f = f.split('/')[-1][:-5]
+	for filenames in filenames_seq:
+		for f in filenames:
+			net = xnet.xnet2igraph(f)
+			f = f.split('/')[-1][:-5]
 
-		xs,ys,_ = get_number_of_papers_by_colab(net)
-		name = prefix + f + '_number_of_papers.pdf'
-		plot_frequency(xs,ys,'number of papers',name)
+			xs,ys,_ = get_number_of_papers_by_colab(net)
+			name = prefix + f + '_number_of_papers_by_colab_freq.pdf'
+			plot_frequency(xs,ys,'number of papers frequency',name)
 
-		xs,ys,citation_count = get_papers_citation_count(net)
-		name = prefix + f + '_papers_citation_count.pdf'
-		plot_frequency(xs,ys,'citation count',name,True)
+			xs,ys,_ = get_papers_citation_count(net)
+			name = prefix + f + '_papers_citation_count_freq.pdf'
+			plot_frequency(xs,ys,'citation count frequency',name,True)
 
 citation_net_name = 'citation_net_ge_1990.xnet'
 # run just one time
@@ -88,9 +88,11 @@ citation_net_name = 'citation_net_ge_1990.xnet'
 # del citation_net
 
 citation_net = xnet.xnet2igraph(citation_net_name)
+vcount = citation_net.vcount()
+citation_net.vs['numeric_id'] = range(vcount)
 
 filenames_seq = []
-headers = ['colabs/basic_colab_cut/*deleted_basic.xnet']#,'colabs/basic_colab_cut/*selected_basic.xnet']
+headers = ['colabs/basic_colab_cut/*deleted_basic.xnet','colabs/basic_colab_cut/*selected_basic.xnet']
 
 for header in headers:
 	filenames = glob.glob(header)
@@ -101,3 +103,32 @@ years = list(range(1990,2011))
 print(years)
 print(filenames_seq)
 time_series(filenames_seq,years)
+plot_by_year(filenames_seq)
+
+filenames_seq = []
+headers = ['colabs/comb_colab_cut/*deleted*.xnet','colabs/comb_colab_cut/*selected*.xnet']
+
+for header in headers:
+	filenames = glob.glob(header)
+	filenames = sorted(filenames)
+	filenames_seq.append(filenames)
+
+years = list(range(1990,2011))
+print(years)
+print(filenames_seq)
+time_series(filenames_seq,years)
+plot_by_year(filenames_seq)
+
+filenames_seq = []
+headers = ['colabs/comb_colab_log_cut/*deleted*.xnet','colabs/comb_colab_log_cut/*selected*.xnet']
+
+for header in headers:
+	filenames = glob.glob(header)
+	filenames = sorted(filenames)
+	filenames_seq.append(filenames)
+
+years = list(range(1990,2011))
+print(years)
+print(filenames_seq)
+time_series(filenames_seq,years)
+plot_by_year(filenames_seq)

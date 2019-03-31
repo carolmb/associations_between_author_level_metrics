@@ -59,7 +59,7 @@ def author_colabs_author(net,begin,delta,valid_authors):
     all_authors = set()
 
     #print(net.vs.attributes())
-    papers = net.vs.select(year_ge=begin,year_lt=begin+delta)
+    papers = net.vs.select(year_ge=begin,year_le=begin+delta)
     #papers = papers.select(year_lt=begin+delta)
     #print('total of papers:::::',len(papers))
 
@@ -75,11 +75,9 @@ def author_colabs_author(net,begin,delta,valid_authors):
         if i%10000 == 0:
             print(i)
 
-        title = paper['title']
-        abstract = paper['abstract']
-
+        
         authors = paper['authors_idxs'].split(',')
-        authors = [a for a in authors if a in valid_authors]
+        authors = [int(a) for a in authors if int(a) in valid_authors]
         all_authors |= set(authors)
         authors = sorted(authors)
         N = len(authors)
@@ -94,10 +92,9 @@ def author_colabs_author(net,begin,delta,valid_authors):
     #end_time = time.time()
     #print('end delta',end_time-middle_time)
 
-    #print('colabs',len(colabs))
+    print('colabs',len(colabs))
     colabs = dict(colabs)
     papers_from_colab = dict(papers_from_colab)
-    # print(colabs)
     return colabs,papers_from_colab,all_authors
 
 

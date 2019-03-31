@@ -136,17 +136,20 @@ filenames = sorted(filenames)
 filenames = filenames[-4:]
 print(filenames)
 
-'''
 preserve = 0.8
 weight_key = 'weight_basic'
 prefix = 'colabs/basic_colab_cut/'
 sufix = '_basic.xnet'
 generate_nets(filenames,prefix,sufix,weight_key,preserve)
 
-'''
 preserve = 0.8
 weight_key = 'weight_comb'
 prefix = 'colabs/comb_colab_cut/'
 sufix = '_comb.xnet'
 generate_nets(filenames,prefix,sufix,weight_key,preserve)
 
+preserve = 0.8
+weight_key = 'weight_comb_log'
+prefix = 'colabs/comb_colab_log_cut/'
+sufix = '_comb_log.xnet'
+generate_nets(filenames,prefix,sufix,weight_key,preserve)
