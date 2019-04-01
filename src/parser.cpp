@@ -52,8 +52,28 @@ int read_edges(ifstream &input, vector<Edge> &edges, vector<double> &weights, bo
 		
 		input.ignore();
 		next = input.peek();
+		
 	}
 	return n_edges;
+}
+
+void add_edges(igraph_t &g, int n_edges, vector<Edge> &p_edges, vector<double> &weights) {
+	igraph_vector_t edges;
+	igraph_vector_init(&edges, n_edges*2);
+	int i = 0;
+	for(vector<Edge>::iterator it = p_edges.begin(); it != p_edges.end(); it++) {
+		int s = it->source;
+		int t = it->target;
+		VECTOR(edges)[i] = s;
+		VECTOR(edges)[i+1] = t;
+		i += 2;
+	}
+	
+	igraph_add_edges(&g,&edges,0);
+
+	if (weights.size()) {
+		add_numeric_attr_edge(g,weights,"weight");
+	}
 }
 
 void read_field_values(ifstream &input, int n_elements, string type, vector<double> &field_values) {
@@ -82,6 +102,7 @@ void read_field_values(ifstream &input, int n_elements, string type, vector<stri
 
 void add_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
 	string header;
+
 	while (input >> header) {
 		string field_name;
 		input >> quoted(field_name);
@@ -96,16 +117,16 @@ void add_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
 		input.ignore();
 
 		if (!field_type.compare("s")) {
-			
+			cout << "string: " << field_name << " header: " << header << endl;
 			vector<string> values;
 			read_field_values(input,n_elements,field_type,values);
-			continue;
 			if (!header.compare("#v")) {
 				add_string_attr_vtx(g,values,field_name);	
 			} else {
 				add_string_attr_edge(g,values,field_name);
 			}
 		} else {
+			cout << "numeric: " << field_name << " header: " << header << endl;
 			vector<double> values;
 			read_field_values(input,n_elements,field_type,values);
 			if (!header.compare("#v")) {
@@ -114,24 +135,6 @@ void add_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
 				add_numeric_attr_edge(g,values,field_name);
 			}
 		}
-		cout << "aaaaaaaaaaaaaa";
-	}
-}
-
-void add_edges(igraph_t &g, int n_edges, vector<Edge> &p_edges, vector<double> &weights) {
-	igraph_vector_t edges;
-	igraph_vector_init(&edges, n_edges);
-
-	for(vector<Edge>::iterator it = p_edges.begin(); it != p_edges.end(); it++) {
-		int s = it->source;
-		int t = it->target;
-		VECTOR(edges)[s] = t;	
-	}
-	
-	igraph_add_edges(&g,&edges,0);
-
-	if (weights.size()) {
-		add_numeric_attr_edge(g,weights,"weight");
 	}
 }
 
@@ -162,13 +165,14 @@ void add_string_attr_edge(igraph_t &g, vector<string> &attr, string field) {
 }
 
 void add_numeric_attr_vtx(igraph_t &g, vector<double> &attr, string field) {
-	if (!attr.size())
+	if (!attr.size()) {
 		return;
+	}
 	igraph_vector_t values;
 	igraph_vector_init(&values, attr.size());
 	int pos = 0;
 	for(vector<double>::iterator it = attr.begin(); it != attr.end(); it++) {
-		VECTOR(values)[pos]=*it;
+		VECTOR(values)[pos]=*it; 
 		pos++;
 	}
 	SETVANV(&g,field.c_str(),&values);
@@ -184,36 +188,35 @@ void add_string_attr_vtx(igraph_t &g, vector<string> &attr, string field) {
 		igraph_strvector_set(&values,pos,it->c_str());
 		pos++;
 	}
+	
 	igraph_cattribute_VAS_setv(&g,field.c_str(),&values);
-	cout << attr.size() << endl;
 }
 
 igraph_t xnet2igraph(string filename) {
     ifstream input (filename);
     igraph_t g;		
-	
-    if (input.is_open()) {
 
-    	vector<string> names;
-    	int n_vtxs = read_vertices(input,names);
-    	cout << n_vtxs << " n_vtxs" << endl;
+	if (input.is_open()) {
 
-    	vector<Edge> edges;
-    	vector<double> weights;
-    	bool isdirected = false;
-    	int n_edges = read_edges(input,edges,weights,isdirected);
-
+		vector<string> names;
+		int n_vtxs = read_vertices(input,names);
+		
+		vector<Edge> edges;
+		vector<double> weights;
+		bool isdirected = false;
+		int n_edges = read_edges(input,edges,weights,isdirected);
+		
 		igraph_empty(&g,n_vtxs,isdirected);
 		add_string_attr_vtx(g,names,"names");
 		add_edges(g,n_edges,edges,weights);
 
 		add_extra_fields(g,input,n_vtxs,n_edges);
 
-        input.close();
-    } else {
-        cout << "Error during file reading." << endl;
-    }
-    return g;
+		input.close();
+	} else {
+		cout << "Error during file reading." << endl;
+	}
+	return g;
 }
 
 

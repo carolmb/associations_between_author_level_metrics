@@ -6,7 +6,8 @@
 using string = std::string;
 
 int main() {
-    string filename = "data/citation_network.xnet";
+    igraph_i_set_attribute_table(&igraph_cattribute_table);
+    string filename = "data/citation_net_ge_1990.xnet";
     // string filename = "test3.xnet";
     igraph_t g = xnet2igraph(filename);
     
