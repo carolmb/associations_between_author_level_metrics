@@ -47,7 +47,7 @@ def get_papers_citation_count(net):
 
     return get_freq(papers_citation_count)
 
-def time_series(filenames_seq,years):
+def time_series(filenames_seq,years,head):
     prefix = 'pdfs/'
     means = []
 
@@ -64,7 +64,7 @@ def time_series(filenames_seq,years):
             print('papers citation count',t2-t1)
             means[-1].append(np.mean(citation_count))
             print()
-    plot_line(years,means,'citation mean',prefix + 'citation_mean.pdf')
+    plot_line(years,means,'citation mean',prefix + head + 'citation_mean.pdf')
 
 def plot_by_year(filenames):
 	prefix = 'pdfs/'
@@ -81,7 +81,7 @@ def plot_by_year(filenames):
 			name = prefix + f + '_papers_citation_count_freq.pdf'
 			plot_frequency(xs,ys,'citation count frequency',name,True)
 
-citation_net_name = 'citation_net_ge_1990.xnet'
+citation_net_name = '../data/citation_net_ge_1990.xnet'
 # run just one time
 # citation_net = util.get_net()
 # xnet.igraph2xnet(citation_net,citation_net_name)
@@ -102,7 +102,7 @@ for header in headers:
 years = list(range(1990,2011))
 print(years)
 print(filenames_seq)
-time_series(filenames_seq,years)
+time_series(filenames_seq,years,'basic')
 plot_by_year(filenames_seq)
 
 filenames_seq = []
@@ -116,7 +116,7 @@ for header in headers:
 years = list(range(1990,2011))
 print(years)
 print(filenames_seq)
-time_series(filenames_seq,years)
+time_series(filenames_seq,years,'comb')
 plot_by_year(filenames_seq)
 
 filenames_seq = []
@@ -130,5 +130,5 @@ for header in headers:
 years = list(range(1990,2011))
 print(years)
 print(filenames_seq)
-time_series(filenames_seq,years)
+time_series(filenames_seq,years,'comb_log')
 plot_by_year(filenames_seq)

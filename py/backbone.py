@@ -59,7 +59,7 @@ def get_best_cut(net,preserve_percent,a_min,a_max):
     t1 = time.time()
     print('while begin',t1-t0)
     while True:
-        if i > 100:
+        if i > 50:
             print('i > 100')
             cuted_net,deleted_edges = alpha_cut(a_min,net)
             preserved_size = get_largest_component_size(cuted_net)
@@ -133,7 +133,7 @@ def generate_nets(filenames,prefix,sufix,weight_key,preserve):
 
 filenames = glob.glob('colabs/original/*')
 filenames = sorted(filenames)
-filenames = filenames[-4:]
+filenames = filenames[:-4]
 print(filenames)
 
 preserve = 0.8
