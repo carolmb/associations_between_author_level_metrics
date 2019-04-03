@@ -16,11 +16,16 @@ vector<string> split_str(string &str,  char d) {
 	return output;
 }
 
-vector<vector<string> > split_vec(vector<string> *vec, char d) {
-	vector<vector<string> > output;
+vector<vector<long long int> > split_vec(vector<string> *vec, char d) {
+	vector<vector<long long int> > output;
 	for (vector<string>::iterator it = vec->begin(); it != vec->end(); it++) {
 		vector<string> current = split_str(*it, d);
-		output.push_back(current);
+		vector<long long int> current_conv;
+		for (int i = 0; i < current.size(); i++) {
+			long long int p_idx = stoll(current[i],nullptr,10);
+			current_conv.push_back(p_idx);
+		}
+		output.push_back(current_conv);
 	}
 	return output;
 }
@@ -44,19 +49,79 @@ set<T> get_unique_values(vector<vector<T> > &values) {
 		it ++;
 
 	}
-	cout << "Unique authors size " << unique.size() << endl;
 	return unique;
 }
 
-igraph_t* create_colab(igraph_t *g, int year_begin, int year_end) {
- //    g->remove_vtx_by("year","gt",year_begin);
-	// vector<string> *authors = g->get_field_values("author_idxs");
-	// vector<string> *paper_idxs = g->get_field_values("id");
-	
- //    vector<vector<string> > authors_vec = split_vec(authors,';');
- //    set<string> unique_authors = get_unique_values(authors_vec);
-
- //    long int total_authors = unique_authors.size();
-
-    return nullptr;
+/*
+igraph_vector_t select_ids(igraph_t &g, int &begin, int &end) {
+	igraph_vector_t years,idxs;
+	VANV(&g,"year",&years);
+	int size = igraph_vector_size(&years);
+	for (int i = 0; i < size; i++) {
+		if (years[i] >= begin and years[i] <= end) {
+			igraph_vector_push_back(&idxs,i);
+		}
+	}
+	return idxs;
 }
+
+igraph_t create_colab(igraph_t &g, int year_begin, int year_end) {
+
+	igraph_t g_copy = igrapy_copy(&g);
+	igraph_vector_t idxs_to_del = select_ids(g,year_begin,year_end);
+	igraph_delete_vertices(&g,idxs_to_del);
+	g->remove_vtx_by("year","gt",year_begin);
+	vector<string> *authors = g->get_field_values("author_idxs");
+	vector<string> *paper_idxs = g->get_field_values("id");
+
+	vector<vector<string> > authors_vec = split_vec(authors,';');
+	set<string> unique_authors = get_unique_values(authors_vec);
+
+	long int total_authors = unique_authors.size();
+
+	return nullptr;
+}
+*/
+
+bool comp (int i,int j) { return (i<j); }
+
+void print_papers_stat(igraph_t &g,igraph_t &citation_net) {
+	igraph_strvector_t papers;
+	igraph_strvector_init(&papers,igraph_ecount(&g));
+	EASV(&g,"papers",&papers);
+
+	vector<string> papers_strings;
+	int size = igraph_strvector_size(&papers);
+	for (int i = 0; i < size; i++) {
+		string str1;
+		str1 = STR(papers,i);
+		str1 = str1.substr(1,str1.size()-2);
+		papers_strings.push_back(str1);
+	}
+	
+	vector<vector<long long int> > papers_splited = split_vec(&papers_strings, ',');
+	set<long long int> unique_papers = get_unique_values(papers_splited);
+	cout << "Total of unique papers " << unique_papers.size() << endl;
+
+	igraph_vector_t times_cited; 
+	igraph_vector_init(&times_cited,igraph_vcount(&citation_net));
+	VANV(&citation_net,"times_cited",&times_cited);
+
+	vector<int> times_cited_each_paper;
+	for(set<long long int>::iterator it = unique_papers.begin(); it != unique_papers.end(); it++) {
+		times_cited_each_paper.push_back(VECTOR(times_cited)[*it]);
+	}
+	sort (times_cited_each_paper.begin(), 
+		times_cited_each_paper.end(), 
+		comp);
+	double sum = 0.0;
+	size = times_cited_each_paper.size();
+	for (vector<int>::iterator it = times_cited_each_paper.begin(); it != times_cited_each_paper.end(); it++) {
+		sum += *it;
+	}
+	double mean = sum/size;
+	double meadian = times_cited_each_paper[(int)size/2];
+	cout << "Mean " << mean << " Median " << meadian << endl;
+}
+
+// scp -P 12222 carol_mb@143.107.183.175:/home/carol_mb/Documents/scisci/code/py/colabs/basic_colab_cut/colab_2010_2014_test_0.8_selected_basic.xnet ~/Documents/2019.1/
