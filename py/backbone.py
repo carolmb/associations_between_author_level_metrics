@@ -59,7 +59,7 @@ def get_best_cut(net,preserve_percent,a_min,a_max):
     t1 = time.time()
     print('while begin',t1-t0)
     while True:
-        if i > 100:
+        if i > 50:
             print('i > 100')
             cuted_net,deleted_edges = alpha_cut(a_min,net)
             preserved_size = get_largest_component_size(cuted_net)
@@ -103,10 +103,11 @@ def get_best_cut(net,preserve_percent,a_min,a_max):
 def apply_backbone(net,a_min,a_max,preserve=0.8,weight_key='weight_basic'):
     t0 = time.time()
     print('apply_backbone begin')
-    disparity_filter(net,weight_key)
+    giant = net.components().giant()
+    disparity_filter(giant,weight_key)
     t1 = time.time()
     print('disparity_filter end',t1-t0)
-    return get_best_cut(net,preserve,a_min,a_max)
+    return get_best_cut(giant,preserve,a_min,a_max)
 
 
 # In[8]:
@@ -133,7 +134,7 @@ def generate_nets(filenames,prefix,sufix,weight_key,preserve):
 
 filenames = glob.glob('colabs/original/*')
 filenames = sorted(filenames)
-filenames = filenames[-4:]
+filenames = filenames[:-4]
 print(filenames)
 
 preserve = 0.8

@@ -31,7 +31,7 @@ vector<vector<long long int> > split_vec(vector<string> *vec, char d) {
 }
 
 template<class T>
-set<T> get_unique_values(vector<vector<T> > &values) {
+set<T> get_unique_values(vector<vector<T> > &values,vector<int> &sizes) {
 	
 	set<T> unique;
 	auto set_it = unique.begin(); 
@@ -39,6 +39,8 @@ set<T> get_unique_values(vector<vector<T> > &values) {
 	typename vector<vector<T> >::iterator it = values.begin();
 	
 	while(it != values.end()) {
+	    int size = it->size();
+	    sizes.push_back(size);
 	    typename vector<T>::iterator val_it = it->begin();
 	    
 	    while(val_it != it->end()) {
@@ -86,7 +88,9 @@ igraph_t create_colab(igraph_t &g, int year_begin, int year_end) {
 bool comp (int i,int j) { return (i<j); }
 
 void print_papers_stat(igraph_t &g,igraph_t &citation_net) {
-	igraph_strvector_t papers;
+	time_t t0;
+    time(&t0);
+    igraph_strvector_t papers;
 	igraph_strvector_init(&papers,igraph_ecount(&g));
 	EASV(&g,"papers",&papers);
 
@@ -100,7 +104,8 @@ void print_papers_stat(igraph_t &g,igraph_t &citation_net) {
 	}
 	
 	vector<vector<long long int> > papers_splited = split_vec(&papers_strings, ',');
-	set<long long int> unique_papers = get_unique_values(papers_splited);
+	vector<int> sizes;
+	set<long long int> unique_papers = get_unique_values(papers_splited, sizes);
 	cout << "Total of unique papers " << unique_papers.size() << endl;
 
 	igraph_vector_t times_cited; 
@@ -122,6 +127,30 @@ void print_papers_stat(igraph_t &g,igraph_t &citation_net) {
 	double mean = sum/size;
 	double meadian = times_cited_each_paper[(int)size/2];
 	cout << "Mean " << mean << " Median " << meadian << endl;
+    time_t t1;
+    time(&t1);
+    cout << "print_paper_stat run time " << difftime(t1,t0) << "s\n";
+    // TODO mean and median for sizes
 }
 
-// scp -P 12222 carol_mb@143.107.183.175:/home/carol_mb/Documents/scisci/code/py/colabs/basic_colab_cut/colab_2010_2014_test_0.8_selected_basic.xnet ~/Documents/2019.1/
+igraph_t get_giant_component(igraph_t &g) {
+	int current_size = 0;
+	int max_size = 0;
+	int max_idx = -1;
+
+	igraph_vector_ptr_t components;
+    igraph_vector_ptr_init(&components,0);
+    igraph_decompose(&g, &components, IGRAPH_WEAK, -1, 2);
+    for (int i = 0; i < igraph_vector_ptr_size(&components); i++) {
+        igraph_t *component = (igraph_t *) igraph_vector_ptr_e(&components,i);
+        current_size = igraph_vcount(component);
+        if (current_size > max_size) {
+        	max_size = current_size;
+        	max_idx = i;
+        }
+    }
+    igraph_t *component = (igraph_t *) igraph_vector_ptr_e(&components,max_idx);
+    igraph_t giant_component = *component;
+    igraph_decompose_destroy(&components);
+    return giant_component;
+}

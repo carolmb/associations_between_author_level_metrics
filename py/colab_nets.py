@@ -31,7 +31,7 @@ net.vs['numeric_id'] = range(vcount)
 
 min_year = 1990
 max_year = 2010
-delta = 5
+delta = 4
 
 authors_idx = net.vs['authors_idxs']
 authors = []

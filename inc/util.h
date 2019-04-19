@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cstring>
-
+#include <ctime>
 using namespace std;
 
 bool is_alpnum(string);
@@ -28,4 +28,6 @@ set<T> get_unique_authors(vector<vector<T> > &);
 // igraph_t* create_colab(igraph_t *, int, int);
 void print_papers_stat(igraph_t&,igraph_t&);
 bool comp (int i,int j);
+igraph_t get_giant_component(igraph_t&);
+
 #endif
