@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <igraph.h>
+#include <ctime>
 #include "edge.h"
 
 using namespace std;

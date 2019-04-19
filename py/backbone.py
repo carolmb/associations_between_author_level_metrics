@@ -103,10 +103,11 @@ def get_best_cut(net,preserve_percent,a_min,a_max):
 def apply_backbone(net,a_min,a_max,preserve=0.8,weight_key='weight_basic'):
     t0 = time.time()
     print('apply_backbone begin')
-    disparity_filter(net,weight_key)
+    giant = net.components().giant()
+    disparity_filter(giant,weight_key)
     t1 = time.time()
     print('disparity_filter end',t1-t0)
-    return get_best_cut(net,preserve,a_min,a_max)
+    return get_best_cut(giant,preserve,a_min,a_max)
 
 
 # In[8]:

@@ -106,18 +106,18 @@ void add_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
 	while (input >> header) {
 		string field_name;
 		input >> quoted(field_name);
-		cout << field_name << " ";
+		// cout << field_name << " ";
 
 		string field_type;
 		input >> field_type;
-		cout << field_type << endl;
+		// cout << field_type << endl;
 
 		int n_elements = !header.compare("#v") ? n_vtxs : n_edges;
 		
 		input.ignore();
 
 		if (!field_type.compare("s")) {
-			cout << "string: " << field_name << " header: " << header << endl;
+			// cout << "string: " << field_name << " header: " << header << endl;
 			vector<string> values;
 			read_field_values(input,n_elements,field_type,values);
 			if (!header.compare("#v")) {
@@ -126,7 +126,7 @@ void add_extra_fields(igraph_t &g, ifstream &input, int n_vtxs, int n_edges) {
 				add_string_attr_edge(g,values,field_name);
 			}
 		} else {
-			cout << "numeric: " << field_name << " header: " << header << endl;
+			// cout << "numeric: " << field_name << " header: " << header << endl;
 			vector<double> values;
 			read_field_values(input,n_elements,field_type,values);
 			if (!header.compare("#v")) {
@@ -197,7 +197,8 @@ igraph_t xnet2igraph(string filename) {
     igraph_t g;		
 
 	if (input.is_open()) {
-
+        time_t t0;
+        time(&t0);
 		vector<string> names;
 		int n_vtxs = read_vertices(input,names);
 		
@@ -213,6 +214,9 @@ igraph_t xnet2igraph(string filename) {
 		add_extra_fields(g,input,n_vtxs,n_edges);
 
 		input.close();
+        time_t t1;
+        time(&t1);
+        cout << "xnet2igraph run time " << difftime(t1,t0) << "s\n";
 	} else {
 		cout << "Error during file reading." << endl;
 	}

@@ -103,8 +103,9 @@ years = list(range(1990,2011))
 print(years)
 print(filenames_seq)
 time_series(filenames_seq,years,'basic')
-plot_by_year(filenames_seq)
+# plot_by_year(filenames_seq)
 
+'''
 filenames_seq = []
 headers = ['colabs/comb_colab_cut/*deleted*.xnet','colabs/comb_colab_cut/*selected*.xnet']
 
@@ -132,3 +133,4 @@ print(years)
 print(filenames_seq)
 time_series(filenames_seq,years,'comb_log')
 plot_by_year(filenames_seq)
+'''
