@@ -5,6 +5,7 @@ import glob
 # import matplotlib.pyplot as plt
 import json
 import math
+import concurrent.futures
 
 np.set_printoptions(precision=6)
 
@@ -37,8 +38,17 @@ def graph_infos_to_json(year,graph,original_graph,weight_name):
     degree = original_graph.degree(vtxs)
     json_dict = metric_infos_to_json('degree',degree,json_dict)
 
-    #betweenness = original_graph.betweenness(vtxs,weights=dist,cutoff=20)
-    #json_dict = metric_infos_to_json('betweenness',betweenness,json_dict)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        future_to_v = {executor.submit(original_graph.betweenness, v, weights=dist, cutoff=20) : v for v in vtxs}
+        for future in concurrent.futures.as_completed(future_to_v):
+            v = future_to_v[future]
+            try:
+                b = future.result()
+                v['betweenness'] = b
+            except Exception as exc:
+                print('%r generated an exception: %s' % (v, exc))
+        
+    json_dict = metric_infos_to_json('betweenness',vtxs['betweenness'],json_dict)
 
     #closeness = original_graph.closeness(vtxs,weights=dist,cutoff=20)
     #json_dict = metric_infos_to_json('closeness',closeness,json_dict)
@@ -81,3 +91,6 @@ for i,filenames in enumerate(filenames_seq):
     output.write(json_obj)
     output.close()
 
+# filename = 'colab_1990_1994_test_0.8_selected_basic.xnet'
+# graph = xnet.xnet2igraph(filename)
+# graph_infos_to_json(1990,graph,graph,'weight_basic')
