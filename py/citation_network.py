@@ -74,12 +74,10 @@ def preprocess_citation_network():
     print('Loading network...')
     net = xnet.xnet2igraph(base+"wosAPSWithPACS_WithMAG_raw.xnet")
     print(net.is_directed())
-    to_del = [e for e in net.es if e.source == e.target or net.vs[e.source]['Year Published'] < net.vs[e.target]['Year Published']]
-    net.delete_edges(to_del)
-
+    
     print('Removing attributes...')
-    attributes = ['Digital Object Identifier (DOI)','Document Type','JCR Category',
-    'Language','MAGID','PACS-0','PACS-0 Major','PACS-1','PACS-1 Major','PACS-2',
+    attributes = ['Digital Object Identifier (DOI)','Document Type',
+    'Language','MAGID','PACS-1','PACS-1 Major','PACS-2',
     'PACS-2 Major','PACS-3','PACS-3 Major','PACS-4','PACS-4 Major','Page Count','hasPACS']
     net = remove_extra_attributes(net,attributes)
 
@@ -89,12 +87,15 @@ def preprocess_citation_network():
     ('Year Published','year'),('29-Character Source Abbreviation','source')]
     net = rename_attributes(net,to_rename)
 
+    net = select_subgraph(1990,2010,net)
+    print(net.is_directed())
+
     print('Title and abstract preprocess...')
     net.vs['title'] = [preprocess_abstract(t) for t in net.vs['title']]
     abstracts = [preprocess_abstract(a) for a in net.vs['abstract']]
     net.vs['abstract'] = abstracts
 
-    xnet.igraph2xnet(net, fileName=base+'citation_network.xnet')
+    xnet.igraph2xnet(net, fileName=base+'citation_network_ge1990.xnet')
 
 '''
 original vertices attributes:
