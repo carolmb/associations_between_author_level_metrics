@@ -3,7 +3,6 @@
 
 # In[2]:
 
-
 from igraph import *
 import xnet
 import util
@@ -13,10 +12,15 @@ import time
 # In[3]:
 
 
-net = xnet.xnet2igraph('../data/citation_net_ge_1990.xnet')
+net = xnet.xnet2igraph('../data/citation_network_ge1990_pacs.xnet')
 
-vcount = net.vcount()
-net.vs['numeric_id'] = range(vcount)
+if not 'numeric_id' in net.vs.attributes():
+    net = util.get_net(net)
+    print("Não tem numeric_id")
+    vcount = net.vcount()
+    net.vs['numeric_id'] = list(range(vcount))
+    xnet.igraph2xnet(net,'../data/citation_network_ge1990_pacs.xnet')
+
 
 # net = Graph()
 # net.add_vertices(5)
@@ -28,10 +32,10 @@ net.vs['numeric_id'] = range(vcount)
 
 
 # In[5]:
-
+'''
 min_year = 1990
 max_year = 2010
-delta = 4
+delta = 3
 
 authors_idx = net.vs['authors_idxs']
 authors = []
@@ -40,7 +44,15 @@ for a_list in authors_idx:
     authors += a_list
 
 authors = set([int(a) for a in authors if not a == ''])
-print('total number of authors',authors)
+print('total number of authors',len(authors))
+
+temp = 0
+for a in authors:
+    print(a,end=' ')
+    temp += 1
+    if temp > 10:
+        break
+print()
 
 # In[ ]:
 
@@ -78,17 +90,17 @@ for year in range(min_year,max_year+1):
     colab_net.vs['name'] = idxs
     colab_net.add_edges(edges)
     colab_net.es['weight_basic'] = weights_basic
-    colab_net.es['weight_comb'] = weights_comb
+    colab_net.es['weight'] = weights_comb
     colab_net.es['weight_comb_log'] = weights_comb_log
     colab_net.es['papers'] = papers_by_colab
     t3 = time.time()
     print('time creating graph',t3-t2)
-    xnet.igraph2xnet(colab_net,'colabs/original/colab_'+str(year)+'_'+str(year+delta)+'_test')
+    xnet.igraph2xnet(colab_net,'colabs/original/colab_'+str(year)+'_'+str(year+delta)+'.xnet')
     t4 = time.time()
     print('time saving',t4-t3)
     print()
 
-
+'''
 # In[ ]:
 
 

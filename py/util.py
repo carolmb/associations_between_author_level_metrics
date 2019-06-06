@@ -7,8 +7,7 @@ import itertools
 '''
 Clear database
 '''
-def get_net():
-    net = xnet.xnet2igraph('../data/citation_network.xnet')
+def get_net(net):
 
     print(net.vs.attributes())
 
@@ -72,11 +71,12 @@ def author_colabs_author(net,begin,delta,valid_authors):
     for paper in papers:
 
         i += 1
-        if i%10000 == 0:
-            print(i)
+#        if i%10000 == 0:
+ #           print(i)
 
-        
+
         authors = paper['authors_idxs'].split(',')
+        authors = [a for a in authors if not a == '']
         authors = [int(a) for a in authors if int(a) in valid_authors]
         all_authors |= set(authors)
         authors = sorted(authors)

@@ -100,7 +100,7 @@ def get_best_cut(net,preserve_percent,a_min,a_max):
 # In[5]:
 
 
-def apply_backbone(net,a_min,a_max,preserve=0.8,weight_key='weight_basic'):
+def apply_backbone(net,a_min,a_max,preserve=0.6,weight_key='weight_basic'):
     t0 = time.time()
     print('apply_backbone begin')
     giant = net.components().giant()
@@ -134,23 +134,24 @@ def generate_nets(filenames,prefix,sufix,weight_key,preserve):
 
 filenames = glob.glob('colabs/original/*')
 filenames = sorted(filenames)
-filenames = filenames[:-4]
 print(filenames)
 
-preserve = 0.8
+'''
+preserve = 0.5
 weight_key = 'weight_basic'
-prefix = 'colabs/basic_colab_cut/'
-sufix = '_basic.xnet'
+prefix = 'colabs/wbasic/'
+sufix = '_wb.xnet'
 generate_nets(filenames,prefix,sufix,weight_key,preserve)
-
-preserve = 0.8
-weight_key = 'weight_comb'
-prefix = 'colabs/comb_colab_cut/'
-sufix = '_comb.xnet'
+'''
+preserve = 0.5
+weight_key = 'weight'
+prefix = 'colabs/wcomb/'
+sufix = '_wc.xnet'
 generate_nets(filenames,prefix,sufix,weight_key,preserve)
-
-preserve = 0.8
+'''
+preserve = 0.4
 weight_key = 'weight_comb_log'
 prefix = 'colabs/comb_colab_log_cut/'
-sufix = '_comb_log.xnet'
+sufix = '_comb_log4.xnet'
 generate_nets(filenames,prefix,sufix,weight_key,preserve)
+'''
