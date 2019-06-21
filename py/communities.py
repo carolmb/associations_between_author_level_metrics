@@ -85,16 +85,14 @@ def identify_communities_leidenalg(net):
             v2['community'] = str(idx+1)
     return net_copy
 
-filenames = glob.glob("pacs/*.xnet")
+filenames = glob.glob("pacs/pac_net*_w1.xnet")
 filenames = sorted(filenames)
-
-print(filenames,'aaaa')
 
 graphs = []
 for filename in filenames:
 	print(filename)
 	net = xnet.xnet2igraph(filename)
-	net = identify_communities_infomap(net)
+	net = identify_communities_infomap(net,2)
 
 	output = filename[:-5] + '_infomap.xnet'
 	xnet.igraph2xnet(net,output)

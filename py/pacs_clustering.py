@@ -13,12 +13,6 @@ from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
-
-files = 'colabs/wbasic/*0.5*selected_wb.xnet'
-
-files = glob.glob(files)
-files = sorted(files)
-
 data = xnet.xnet2igraph('../data/citation_network_ge1990_pacs.xnet')
 
 def get_papers(colab_net,author_vtx):
@@ -106,46 +100,64 @@ def clustering_by_pac(colab_net,citation_net,year):
     return colab_net
 
 def clustering_by_pac_cluster(colab_net,citation_net,pac_net):
-    vecs = authors2str(colab_net,citation_net)
-    n = len(set(pac_net.vs['community']))
-    reduced_vecs = []
+    vecs = colab_net.vs['pac_list']
+    vocab = set([v['community'] for v in pac_net.vs])
+    comm_vecs = []
     names = set(pac_net.vs['name'])
     for vec in vecs:
-        v = [0]*(n+1)
-        v[-1] = 1
-        vec = vec.split(' ')
-        for pac in vec:
-            if pac == 'none' or pac == '99' or not pac in names:
-                continue
-                # print(pac)
-            k = int(pac_net.vs.find(name=pac)['community'])-1
-            v[k] += 1
-        print(v)
-        reduced_vecs.append(v)
-    colab_net.vs['reduced_bow'] = [str(v) for v in reduced_vecs]
-    
-    clustering = AgglomerativeClustering(n_clusters=30,affinity='cosine',linkage='average')
-    fited_clustering = clustering.fit(reduced_vecs)
-    labels = fited_clustering.labels_
-    labels = [str(l) for l in labels]
-    colab_net.vs['pac_hier'] = labels
-    print('hierarquico',np.unique(labels,return_counts=True))
+        comm_repre = ""
+        pacs = vec.split(" ")
+        for pac in pacs:
+            if pac.upper() in names:
+                comm_repre += " " + pac_net.vs.find(name_eq=pac)['community']
+        comm_vecs.append(comm_repre)
 
-def pacs_by_intervals():
+    print(comm_vecs[:10])
+    print(vocab)
+    counter = CountVectorizer(vocabulary=vocab)
+    bows = counter.fit_transform(comm_vecs)
+
+    for author,bow in zip(colab_net.vs,bows):
+        #print(bow.shape,bow.toarray())
+        author['bow'] = str(bow.toarray().tolist())
+
+def pacs_by_intervals(files):
     year = 1990
     for f in files:
         print(f)
         colab_net = xnet.xnet2igraph(f)
-        pac_net = xnet.xnet2igraph('pacs/pac_net_'+str(year)+'_leidenalg.xnet')
+        pac_net = xnet.xnet2igraph('pacs/pac_net_'+str(year)+'_w1_infomap.xnet')
+
+        clustering_by_pac_cluster(colab_net,data,pac_net)
+        xnet.igraph2xnet(colab_net,f[:-5]+'_cluster_by_pac_infomap_multilevel.xnet')
+        year += 1
+
+
+def authors_to_str():
+    year = 1990
+    for f in files:
+        print(f)
+        colab_net = xnet.xnet2igraph(f)
 
         vtx2del = [vtx for vtx in colab_net.vs if colab_net.degree(vtx) == 0]
         colab_net.delete_vertices(vtx2del)
 
-        clustering_by_pac_cluster(colab_net,data,pac_net)
-        xnet.igraph2xnet(colab_net,f[:-5]+'_pac5_cluster.xnet')
+        vecs = authors2str(colab_net,data)
+        for vtx,vec in zip(colab_net.vs,vecs):
+            vtx['pac_list'] = vec
+
+        xnet.igraph2xnet(colab_net,f[:-5]+'_with_author_pac_list.xnet')
         year += 1
 
-pacs_by_intervals()
+# authors_to_str()
+
+files = 'colabs/wbasic/*0.5*selected_wb_with_author_pac_list.xnet'
+
+files = glob.glob(files)
+files = sorted(files)
+
+pacs_by_intervals(files)
+
 # attr_pacs = ['PACS-0','PACS-1','PACS-2','PACS-3','PACS-4']
 # pacs = set()
 # for y in range(1995,2010):
