@@ -33,3 +33,8 @@
 
 # Folder
 data/
+Infomap/
+__pycache__/
+trash/
+temp/
+.ipynb_checkpoints
