@@ -85,7 +85,7 @@ def identify_communities_leidenalg(net):
             v2['community'] = str(idx+1)
     return net_copy
 
-filenames = glob.glob("data/pacs/2lvls/pac_net*_2lvls.xnet")
+filenames = glob.glob("data/pacs/2lvls/pac_net*_2lvls_delta4.xnet")
 filenames = sorted(filenames)
 
 graphs = []

@@ -11,7 +11,7 @@ data = xnet.xnet2igraph('data/citation_network_ge1990_pacs.xnet')
 attr_pacs = get_attr_pacs()
 pac_list = get_pac_list()
 
-delta = 3
+delta = 4
 year_begin = 1990
 year_end = 2010
 
@@ -53,4 +53,4 @@ for y in range(year_begin,year_end+1):
     pac_net.es['weight'] = weights
 
     print("ano:%d vertices:%d arestas:%d" % (y,pac_net.vcount(),pac_net.ecount()))
-    xnet.igraph2xnet(pac_net,'data/pacs/2lvls/pac_net_'+str(y)+'_2lvls.xnet')
+    xnet.igraph2xnet(pac_net,'data/pacs/2lvls/pac_net_'+str(y)+'_2lvls_delta'+str(delta)+'.xnet')

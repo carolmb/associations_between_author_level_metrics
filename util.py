@@ -3,6 +3,7 @@ import xnet
 import numpy as np
 import time
 import itertools
+import json
 
 '''
 Clear database
@@ -110,3 +111,48 @@ def get_pac_list():
     pac_list += ['75','76','77','78','79','81','82','83','84','85','87','88','89','91','92','93','94','95','96','97','98']
     pac_list = set(pac_list)
     return pac_list
+
+def get_pacs_paper_published(paper,data):
+	attr_pacs = get_attr_pacs()
+	pac_list = get_pac_list()
+	pacs = []
+	for pac_code in attr_pacs:
+		pac = paper[pac_code][:2]
+		if pac in pac_list:
+			pacs.append(pac)
+	return [(pacs,len(pacs))]
+
+def get_pacs_in(paper,data):
+	pacs = []
+	p_neighbors = data.neighbors(paper,mode=IN)
+	for idx in p_neighbors:
+		neighbor = data.vs[idx]
+
+		pacs += get_pacs_paper_published(neighbor,data) 
+	return pacs
+
+def get_pacs_out(paper,data):
+    pacs = []
+    p_neighbors = data.neighbors(paper,mode=OUT)
+    for idx in p_neighbors:
+        neighbor = data.vs[idx]
+
+        pacs += get_pacs_paper_published(neighbor,data) 
+    return pacs
+
+def save(data,filename):
+	with open(filename, 'w') as f:
+		json.dump(data, f)
+
+def load(filename):
+	data = None
+	with open(filename, 'r') as f:
+		data = json.load(f)
+	return data
+
+def authors_ranking(authors,N=-1):
+    ranking = sorted(authors.items(),key=lambda x:x[1],reverse=True)
+    if N > 0:
+        return ranking[:N]
+    else:
+        return ranking
