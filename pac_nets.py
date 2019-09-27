@@ -6,14 +6,14 @@ from collections import defaultdict
 from util import get_attr_pacs,get_pac_list
 import matplotlib.pyplot as plt
 
-data = xnet.xnet2igraph('data/citation_network_ge1990_pacs.xnet')
+data = xnet.xnet2igraph('data/citation_network_ge1985_pacs.xnet')
 
 attr_pacs = get_attr_pacs()
 pac_list = get_pac_list()
 
 delta = 4
-year_begin = 1990
-year_end = 2010
+year_begin = 1986
+year_end = 2006
 
 unique_dict = defaultdict(lambda:[])
 

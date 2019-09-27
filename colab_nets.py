@@ -12,14 +12,14 @@ import time
 # In[3]:
 
 
-net = xnet.xnet2igraph('../data/citation_network_ge1990_pacs.xnet')
+net = xnet.xnet2igraph('data/citation_network_ge1985_pacs.xnet')
 
 if not 'numeric_id' in net.vs.attributes():
     net = util.get_net(net)
     print("Não tem numeric_id")
     vcount = net.vcount()
     net.vs['numeric_id'] = list(range(vcount))
-    xnet.igraph2xnet(net,'../data/citation_network_ge1990_pacs.xnet')
+    xnet.igraph2xnet(net,'data/citation_network_ge1985_pacs.xnet')
 
 
 # net = Graph()

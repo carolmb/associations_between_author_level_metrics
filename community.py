@@ -59,7 +59,7 @@ def get_largest_component(g):
 def identify_communities_multilevel(net,lvl):
 	giant = get_largest_component(net)
 	comm_level = giant.community_multilevel(weights='weight',return_levels=True)
-	t = len(comm_level)
+	t = len(comm_level)-1
 	comms = comm_level[min(lvl,t)]
 	comm_list = comms.subgraphs() # communities in current level
 	print('Level',min(lvl,t),'Number of communities identified:',len(comm_list))
@@ -94,5 +94,5 @@ for filename in filenames:
 	net = xnet.xnet2igraph(filename)
 	net = identify_communities_multilevel(net,0)
 
-	output = filename[:-5] + '_multilevel0.xnet'
+	output = filename[:-5] + '_multilevel2.xnet'
 	xnet.igraph2xnet(net,output)

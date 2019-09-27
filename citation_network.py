@@ -1,3 +1,4 @@
+#encoding=utf8
 import xnet
 from igraph import *
 import nltk
@@ -18,7 +19,7 @@ def select_largest_component(net):
         try:
             v = d.vcount()
             if v > max_vcount:
-                print('Current largest number of vertices',v,end='\r')
+                #print('Current largest number of vertices',v)
                 max_vcount, max_idx = v, idx
         except:
             pass
@@ -86,7 +87,7 @@ def preprocess_citation_network():
     ('Year Published','year'),('29-Character Source Abbreviation','source')]
     net = rename_attributes(net,to_rename)
 
-    net = select_subgraph(1990,2010,net)
+    net = select_subgraph(1985,2010,net)
     print(net.is_directed())
 
     print('Title and abstract preprocess...')
@@ -94,7 +95,7 @@ def preprocess_citation_network():
     abstracts = [preprocess_abstract(a) for a in net.vs['abstract']]
     net.vs['abstract'] = abstracts
 
-    xnet.igraph2xnet(net, fileName=base+'citation_network_ge1990_pacs.xnet')
+    xnet.igraph2xnet(net, fileName=base+'citation_network_ge1985_pacs.xnet')
 
 '''
 original vertices attributes:
@@ -126,7 +127,7 @@ original vertices attributes:
 	'hasPACS',
 	'id']
 '''
-base = "../data/"
+base = "data/"
 
 preprocess_citation_network()
 
