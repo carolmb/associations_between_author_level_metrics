@@ -27,8 +27,8 @@ for y in range(year_begin,year_end+1):
         pacs = []
         for pac in attr_pacs:
             if a[pac][:2] in pac_list:
-                pacs.append(a[pac][:2])
-                pac_control.add(a[pac][:2])
+                pacs.append(a[pac][:4])
+                pac_control.add(a[pac][:4])
         #    else:
         #        if not a[pac] == 'None':
         #            print(a,a[pac])
@@ -53,4 +53,4 @@ for y in range(year_begin,year_end+1):
     pac_net.es['weight'] = weights
 
     print("ano:%d vertices:%d arestas:%d" % (y,pac_net.vcount(),pac_net.ecount()))
-    xnet.igraph2xnet(pac_net,'data/pacs/2lvls/pac_net_'+str(y)+'_2lvls_delta'+str(delta)+'.xnet')
+    xnet.igraph2xnet(pac_net,'data/pacs/3lvls/pac_net_'+str(y)+'_3lvls_delta'+str(delta)+'.xnet')

@@ -1,7 +1,7 @@
 import xnet
 import subprocess
 import igraph
-# import leidenalg
+import leidenalg
 import glob
 
 def xnet2net(g,outputname):
@@ -85,14 +85,15 @@ def identify_communities_leidenalg(net):
             v2['community'] = str(idx+1)
     return net_copy
 
-filenames = glob.glob("data/pacs/2lvls/pac_net*_2lvls_delta4.xnet")
+# filenames = glob.glob("data/pacs/3lvls/pac_net*_3lvls_delta4.xnet")
+filenames = glob.glob('data/colabs/wcomb/colab_*_*[0-9]_0.8_selected_wc.xnet')
 filenames = sorted(filenames)
 
 graphs = []
 for filename in filenames:
 	print(filename)
 	net = xnet.xnet2igraph(filename)
-	net = identify_communities_multilevel(net,0)
+	net = identify_communities_multilevel(net,1)
 
-	output = filename[:-5] + '_multilevel2.xnet'
+	output = filename[:-5] + '_leiden.xnet'
 	xnet.igraph2xnet(net,output)

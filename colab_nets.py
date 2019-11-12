@@ -32,10 +32,10 @@ if not 'numeric_id' in net.vs.attributes():
 
 
 # In[5]:
-'''
-min_year = 1990
-max_year = 2010
-delta = 3
+
+min_year = 1986
+max_year = 2006
+delta = 4
 
 authors_idx = net.vs['authors_idxs']
 authors = []
@@ -95,20 +95,8 @@ for year in range(min_year,max_year+1):
     colab_net.es['papers'] = papers_by_colab
     t3 = time.time()
     print('time creating graph',t3-t2)
-    xnet.igraph2xnet(colab_net,'colabs/original/colab_'+str(year)+'_'+str(year+delta)+'.xnet')
+    xnet.igraph2xnet(colab_net,'data/colabs/original/colab_'+str(year)+'_'+str(year+delta)+'.xnet')
     t4 = time.time()
     print('time saving',t4-t3)
     print()
-
-'''
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
 

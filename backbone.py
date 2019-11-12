@@ -125,14 +125,14 @@ def generate_nets(filenames,prefix,sufix,weight_key,preserve):
 
             print('saving the graphs')
             t0 = time.time()
-            output = prefix + filename.split('/')[-1] + '_' + str(preserve) + '_selected'+ sufix
+            output = prefix + filename.split('/')[-1][:-5] + '_' + str(preserve) + '_selected'+ sufix
             xnet.igraph2xnet(net_selected,output)
-            output = prefix + filename.split('/')[-1] + '_' + str(preserve) + '_deleted' + sufix
+            output = prefix + filename.split('/')[-1][:-5] + '_' + str(preserve) + '_deleted' + sufix
             xnet.igraph2xnet(net_deleted,output)
             t1 = time.time()
             print('time saving graphs',t1-t0)
 
-filenames = glob.glob('colabs/original/*')
+filenames = glob.glob('data/colabs/original/*')
 filenames = sorted(filenames)
 print(filenames)
 
@@ -143,9 +143,9 @@ prefix = 'colabs/wbasic/'
 sufix = '_wb.xnet'
 generate_nets(filenames,prefix,sufix,weight_key,preserve)
 '''
-preserve = 0.7
+preserve = 0.8
 weight_key = 'weight'
-prefix = 'colabs/wcomb/'
+prefix = 'data/colabs/wcomb/'
 sufix = '_wc.xnet'
 generate_nets(filenames,prefix,sufix,weight_key,preserve)
 '''
