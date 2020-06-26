@@ -294,6 +294,10 @@ def get_div(values):
 	div = np.exp(-np.sum(values*np.log(values)))
 	return div
 
+def get_asymmetry(values):
+    div = get_div(values)
+    return div/len(values)
+
 def get_most_freq(comms_freq):
     most_freq = defaultdict(lambda:[])
     for key,value in comms_freq.items():
@@ -304,7 +308,7 @@ def get_most_freq(comms_freq):
     else:
         return None
 
-def author_div(a_history):
+def author_div(a_history,get_div):
     a_hist = dict()
     for year,comms_freq in a_history.items():
         if len(comms_freq) > 0:
@@ -315,9 +319,9 @@ def author_div(a_history):
     # plot(X,Y,filename)
     return a_hist
 
-def authors_div(history):
+def authors_metric(history,get_div):
     authors = dict()
     for author,a_history in history.items():
-        a_div = author_div(a_history)
+        a_div = author_div(a_history,get_div)
         authors[author] = a_div
     return authors
