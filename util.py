@@ -294,7 +294,7 @@ def get_div(values):
 	div = np.exp(-np.sum(values*np.log(values)))
 	return div
 
-def get_asymmetry(values):
+def get_symmetry(values):
     div = get_div(values)
     return div/len(values)
 
