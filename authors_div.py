@@ -17,7 +17,8 @@ from matplotlib import transforms,gridspec
 attr_pacs = util.get_attr_pacs() # nome dos atributos dos vértices que contem os códigos PACS
 pac_list = util.get_pac_list() # lista de códigos válidos
 
-def get_citation_future(paper,future_interval,MODE):
+
+def get_citation_future(paper,future_interval, MODE):
     citations = []
     for neighbor in paper.neighbors(mode=MODE):
         if future_interval[0] <= neighbor['year'] <= future_interval[1]:
@@ -27,29 +28,31 @@ def get_citation_future(paper,future_interval,MODE):
 
 def get_freq_of_future(data,MODE,delta_past,delta_future):
 
-    history = defaultdict(lambda:defaultdict(lambda:[]))
-
+    history = defaultdict(lambda: defaultdict(lambda: []))
+    papers = defaultdict(lambda: defaultdict(lambda: 0))
     year_begin = 1986
     year_end = 2007
 
-    for i,year in enumerate(range(year_begin,year_end+1)):
-        subset = data.vs.select(year_ge=year,year_le=year+delta_past)
-        print('to interval',year,year+delta_past)
-        future_interval = (year+delta_past+1,year+delta_past+1+delta_future)
-        print('from interval',future_interval)
+    for i, year in enumerate(range(year_begin,year_end+1)):
+        subset = data.vs.select(year_ge=year, year_le=year+delta_past)
+        print('to interval', year, year+delta_past)
+        future_interval = (year+delta_past+1, year+delta_past+1+delta_future)
+        print('from interval', future_interval)
             
         for paper in subset:
             authors_idxs = paper['authors_idxs'].split(',')
-            citations = get_citation_future(paper,future_interval,MODE)
+            citations = get_citation_future(paper, future_interval, MODE)
             for author in authors_idxs:
                 history[author][year+delta_past] += citations
+                papers[author][year+delta_past] += 1
         print()
-    return history
+    return history, papers
 
-def get_freq_of_citall(data,MODE,delta_past,delta_future):
 
-    history = defaultdict(lambda:defaultdict(lambda:[]))
+def get_freq_of_citall(data, MODE, delta_past, delta_future):
 
+    history = defaultdict(lambda: defaultdict(lambda: []))
+    papers = defaultdict(lambda: defaultdict(lambda: 0))
     year_begin = 1986
     year_end = 2007
             
@@ -64,21 +67,23 @@ def get_freq_of_citall(data,MODE,delta_past,delta_future):
             citations = get_citation_future(paper,future_interval,MODE)
             for author in authors_idxs:
                 history[author][year+delta_past] += citations
+                papers[author][year+delta_past] += 1
         print()
-    return history
+    return history, papers
 
-def get_freq_of_futute_future(data,MODE,delta_past,delta_future):
 
-    history = defaultdict(lambda:defaultdict(lambda:[]))
+def get_freq_of_futute_future(data, MODE, delta_past, delta_future):
 
+    history = defaultdict(lambda: defaultdict(lambda:[]))
+    papers = defaultdict(lambda: defaultdict(lambda: 0))
     year_begin = 1986
     year_end = 2007
 
-    for i,year in enumerate(range(year_begin,year_end+1)):
-        subset = data.vs.select(year_ge=year+delta_past+1,year_le=year+delta_past+1+delta_future)
-        print('to interval',year,year+delta_past)
-        future_interval = (year+delta_past+1,year+delta_past+1+delta_future)
-        print('from interval',future_interval)
+    for i,year in enumerate(range(year_begin, year_end+1)):
+        subset = data.vs.select(year_ge=year+delta_past+1, year_le=year+delta_past+1+delta_future)
+        print('to interval', year, year+delta_past)
+        future_interval = (year+delta_past+1, year+delta_past+1+delta_future)
+        print('from interval', future_interval)
         
         for paper in subset:
             authors_idxs = paper['authors_idxs'].split(',')
@@ -86,8 +91,10 @@ def get_freq_of_futute_future(data,MODE,delta_past,delta_future):
             citations = get_citation_future(paper,future_interval,MODE)
             for author in authors_idxs:
                 history[author][year+delta_past] += citations
+                papers[author][year+delta_past] += 1
         print()
-    return history
+    return history, papers
+
 
 def get_div_paper(papers,pac_nets,get_pacs):
     comms_hist = []
@@ -106,18 +113,21 @@ def get_div_paper(papers,pac_nets,get_pacs):
     div = util.get_div(dist)
     return div
         
-def get_citations(history):
-    author_citations = defaultdict(lambda:defaultdict(lambda:0))
-    for author,hist in history.items():
-        for year,citations in hist.items():
-            author_citations[author][year] = len(citations)
+
+def get_citations(history, papers):
+    author_citations = defaultdict(lambda: defaultdict(lambda: 0))
+    for author, hist in history.items():
+        for year, citations in hist.items():
+            author_citations[author][year] = len(citations)/papers[author][year]
+
     return author_citations
             
-def get_div(history,pac_nets):
-    author_divs = defaultdict(lambda:defaultdict(lambda:0))
-    for author,hist in history.items():
-        for year,citations in hist.items():
-            author_divs[author][year] = get_div_paper(citations,pac_nets,util.get_pacs_in)
+
+def get_div(history, pac_nets):
+    author_divs = defaultdict(lambda: defaultdict(lambda: 0))
+    for author, hist in history.items():
+        for year, citations in hist.items():
+            author_divs[author][year] = get_div_paper(citations, pac_nets, util.get_pacs_in)
     return author_divs
 
 
@@ -154,28 +164,28 @@ if __name__ == '__main__':
 
     # from = 5, to = 3
     print('in')
-    cit_from = get_freq_of_future(data,IN,4,2) #'data/future_citations3.json')
-    cit_from_div = get_div(cit_from,pac_nets)
-    cit_from_cit = get_citations(cit_from)
-    # save(cit_from_div,'data2\\cit_from_diversity.json')
-    # save(cit_from_cit,'data2\\cit_from_citations.json')
+    #cit_from, papers = get_freq_of_future(data, IN, 4, 2) #'data/future_citations3.json')
+    #cit_from_div = get_div(cit_from, pac_nets)
+    #cit_from_cit = get_citations(cit_from, papers)
+    #save(cit_from_div, 'data2\\cit_from_diversity.json')
+    #save(cit_from_cit, 'data2\\cit_from_citations_per_paper.json')
 
     # from = 5, to = 3
     # all 5 + 3
     print('in citall')
-    cit_from = get_freq_of_citall(data,IN,4,2) #'data/future_citations3.json')
-    cit_from_div = get_div(cit_from,pac_nets)
-    cit_from_cit = get_citations(cit_from)
-    # save(cit_from_div,'data2\\cit_all_diversity.json')
-    # save(cit_from_cit,'data2\\cit_all_citations.json')
+    cit_from, papers = get_freq_of_citall(data, IN, 4, 2) #'data/future_citations3.json')
+    #cit_from_div = get_div(cit_from, pac_nets)
+    cit_from_cit = get_citations(cit_from, papers)
+    #save(cit_from_div, 'data2\\cit_all_diversity.json')
+    save(cit_from_cit, 'data2\\cit_all_citations_per_paper.json')
 
     # from = 3, to = 3
     print('out')
-    cit_from = get_freq_of_futute_future(data,OUT,2,2) #'data/future_citations3.json')
-    cit_from_div = get_div(cit_from,pac_nets)
-    cit_from_cit = get_citations(cit_from)
-    # save(cit_from_div,'data2\\out_to_to_diversity.json')
-    # save(cit_from_cit,'data2\\out_to_to_citations.json')
+    cit_from, papers = get_freq_of_futute_future(data, OUT, 2, 2) #'data/future_citations3.json')
+    #cit_from_div = get_div(cit_from, pac_nets)
+    cit_from_cit = get_citations(cit_from, papers)
+    #save(cit_from_div, 'data2\\out_to_to_diversity.json')
+    save(cit_from_cit, 'data2\\out_to_to_citations_per_paper.json')
 
 
     '''
