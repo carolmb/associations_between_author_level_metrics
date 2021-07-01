@@ -263,7 +263,7 @@ def igraph2xnet(g,fileName='test.xnet',ignoredNodeAtts=[],ignoredEdgeAtts=[]):
 	else:
 		isNodeNamed = False		
 
-	fd = open(fileName,'w')
+	fd = open(fileName,'w', encoding="utf-8")
 	fd.write('#vertices '+str(N)+' '+isNodeWeightedString+'\n')
 
 	if (isNodeNamed & isNodeWeighted):
@@ -335,6 +335,7 @@ def igraph2xnet(g,fileName='test.xnet',ignoredNodeAtts=[],ignoredEdgeAtts=[]):
 				elif (typeSampleString == 'v3'):
 					fd.write(str(g.vs[i][att][0])+' '+str(g.vs[i][att][1])+' '+str(g.vs[i][att][2])+'\n')
 				elif (typeSampleString == 's'):
+					temp = g.vs[i][att]
 					fd.write('\"'+g.vs[i][att]+'\"'+'\n')
 				
 

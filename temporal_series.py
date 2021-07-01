@@ -2,41 +2,34 @@
 # coding: utf-8
 
 import xnet
-import glob
-import json
 import numpy as np
 import multiprocessing
 import matplotlib.pyplot as plt
 
-from igraph import *
-import scipy
-from scipy.stats import pearsonr
-from collections import defaultdict
 from util import save, load
-
+from datetime import datetime
+from scipy.stats import spearmanr
+from collections import defaultdict
 from numpy.random import RandomState
+
 # random_state = RandomState(seed=10)
 # print(random_state.get_state()[1][0])
-from datetime import datetime
 
 import warnings
-
 warnings.filterwarnings("error")
 
 
-def get_temporal_series(valid_authors, data, min_year):
+def get_temporal_series(valid_authors, data):
     Y = []
     for author in valid_authors:
         history = data[author]
         y = []
-        old_year = 0
         for year in range(1995, 2011):
             try:
                 value = history[str(year)]
             except:
                 value = 0
-            if year >= min_year:
-                y.append(value)
+            y.append(value)
         Y.append(np.asarray(y))
     Y = np.asarray(Y)
     return Y
@@ -48,30 +41,35 @@ autores válidos seguindo critério frouxo
 
 
 def read_valid_authors():
-    import glob
     name_to_authors = dict()
-    # files = glob.glob('data2/valid_authors_min_criteria_*.txt')
-    files = ['data2/valid_authors_min_criteria_in_out_10_10.txt']
-    for valid_authors_file in files:
-        valid_authors = open(valid_authors_file, 'r').read().split("\n")[:-1]
-        name_to_authors[valid_authors_file[:-4]] = valid_authors
+    file = 'data2/valid_authors_min_criteria_in_out_10_10_temp_v3.txt'
+    valid_authors = open(file, 'r').read().split("\n")[:-1]
+    name_to_authors[file[:-4]] = valid_authors
     return name_to_authors
 
 
 def get_authors_by_percentile(author_values, key_header):
-    authors = list(author_values.keys())
-    values = list(author_values.values())
+    authors = []
+    values = []
+    for k, v in author_values.items():
+        authors.append(k)
+        values.append(v)
+
     authors = np.asarray(authors)
     values_space = np.percentile(values, [0, 25, 50, 75, 100])
     values_space[-1] += 1
-    print(values_space)
-
+    print('percentiles', values_space)
+    values = np.asarray(values)
     author2class = np.searchsorted(values_space, values, 'right')
 
     authors_by_class = dict()
     unique_values = np.unique(author2class)
     for c in unique_values:
         authors_by_class[key_header + str(c)] = authors[author2class == c]
+        temp = values[author2class == c]
+        print(c, min(temp),max(temp))
+    for key_class, authors in authors_by_class.items():
+        print(key_class, len(authors))
     return authors_by_class
 
 
@@ -88,10 +86,7 @@ def delta_temporal_series(X, delta):
 
 def null_model(data, bins=np.linspace(-1, 1, 32), iters=1000):
     X, Y = data
-    try:
-        true_corr = pearsonr(X, Y)[0]
-    except:
-        print(X, Y)
+    true_corr = spearmanr(X, Y)[0]
 
     n = len(X)
     idxs1 = np.arange(n)
@@ -99,12 +94,12 @@ def null_model(data, bins=np.linspace(-1, 1, 32), iters=1000):
     corrs = []
 
     dt = datetime.now()
-
+    # print(dt)
     random_state = RandomState(seed=dt.microsecond)
     for i in range(iters):
         random_state.shuffle(idxs1)
         random_state.shuffle(idxs2)
-        corr = pearsonr(X[idxs1], Y[idxs2])[0]
+        corr = spearmanr(X[idxs1], Y[idxs2])[0]
         corrs.append(corr)
     corrs = np.asarray(corrs)
     nonzero = np.count_nonzero(np.abs(corrs) > np.abs(true_corr))
@@ -121,7 +116,7 @@ def corr_temporal_series_col_null(pool, random_state, temporal_x, temporal_y, ti
 
     corrs = []
     for x, y in zip(temporal_x, temporal_y):
-        c = pearsonr(x, y)[0]
+        c = spearmanr(x, y)[0]
         corrs.append(c)
     corrs = np.asarray(corrs).reshape((-1, 1))
 
@@ -131,16 +126,16 @@ def corr_temporal_series_col_null(pool, random_state, temporal_x, temporal_y, ti
     for k in range(iters):
         temp_x = np.zeros(temporal_x.shape)
         temp_y = np.zeros(temporal_y.shape)
-        for i in range(16):
+        for i in range(temporal_x.shape[1]):
             random_state.shuffle(idxs)
             temp_x[:, i] = temporal_x[idxs, i]
             random_state.shuffle(idxs)
             temp_y[:, i] = temporal_y[idxs, i]
-        p = pool.starmap(pearsonr, list(zip(temp_x, temp_y)))
+        p = pool.starmap(spearmanr, list(zip(temp_x, temp_y)))
         p = np.asarray(p)[:, 0]
         count[:, k] = p
 
-    p_vals = np.count_nonzero(count < corrs, axis=1) / iters
+    p_vals = np.count_nonzero(np.abs(count) > np.abs(corrs), axis=1) / iters
     hists = [np.histogram(c, bins=bins)[0] for c in count]
     hists = np.asarray(hists)
     hist_ave = hists.mean(0)
@@ -171,9 +166,11 @@ def corr_temporal_series_col_null(pool, random_state, temporal_x, temporal_y, ti
     # CORR INFOS MEAN AND STD
     mu = np.nanmean(corrs)
     sigma = np.nanstd(corrs)
+    q_index = len(corr_g_pos)/len(corr_g_neg)
     textstr = '\n'.join((
         r'$\mu=%.2f$' % (mu,),
-        r'$\sigma=%.2f$' % (sigma,)))
+        r'$\sigma=%.2f$' % (sigma,),
+        r'q=%.2f' % (q_index,)))
     props = dict(boxstyle='round', facecolor='gray', alpha=0.3)
     ax = plt.gca()
     # place a text box in upper left in axes coords
@@ -337,76 +334,94 @@ def corr_temporal_series_curves_cit_ref(pool, files, X, Y, title, filename):
         i_axes += 1
 
 
-def corr_temporal_series_curves_samples(pool, files, X, Y, title, filename):
-    i_axes = 0
-    for file in files:
-        temporal_x = X[file]
-        temporal_y = Y[file]
-        try:
-            output = np.loadtxt(filename + file + '_data.csv', delimiter=',')
-        except:
-            output = pool.map(null_model, list(zip(temporal_x, temporal_y)))
-            output = np.asarray(output)
+def get_author_paper_example(data, author_id):
+    found = False
+    for paper in data.vs:
+        i = 0
+        for author in paper['authors_idxs'].split(','):
+            if author == author_id:
 
-        corrs = output[:, 0]
-        p_vals = output[:, 1]
+                found = True
+                print(author_id+' '+paper['title']+' '+paper['authors_names'].split(';')[i])
+                break
+            i += 1
+        if found:
+            break
 
-        idxs_le = p_vals > 0.05
-        corr_le = corrs[idxs_le]
-        label_le = 'p-value > 0.05'
 
-        idxs_g_pos = np.logical_and(p_vals <= 0.05, corrs >= 0)
-        corr_g_pos = corrs[idxs_g_pos]
-        label_g_pos = 'p-value <= 0.05 (corr >= 0)'
+def corr_temporal_series_curves_samples(data, pool, X, Y, Z, authors, x_label, y_label, filename):
 
-        idxs_g_neg = np.logical_and(p_vals <= 0.05, corrs < 0)
-        corr_g_neg = corrs[idxs_g_neg]
-        label_g_neg = 'p-value <= 0.05 (corr < 0)'
+    output = pool.map(null_model, list(zip(X, Y)))
+    output = np.asarray(output)
 
-        # CURVES
-        corr_le_curves_x = temporal_x[idxs_le]
-        corr_le_curves_y = temporal_y[idxs_le]
+    corrs = output[:, 0]
+    p_vals = output[:, 1]
 
-        # for
+    # idxs_le = p_vals > 0.05
+    # corr_le = corrs[idxs_le]
+    # authors_le = authors[idxs_le]
+    # argsort_le = np.argsort(-np.abs(corr_le))
+    # label_le = 'p-value > 0.05'
 
-        corr_g_pos_curves_x = temporal_x[idxs_g_pos]
-        corr_g_pos_curves_y = temporal_y[idxs_g_pos]
+    idxs_g_pos = np.logical_and(p_vals <= 0.05, corrs >= 0)
+    corr_g_pos = corrs[idxs_g_pos]
+    authors_pos = authors[idxs_g_pos]
+    Z_pos = Z[idxs_g_pos]
+    argsort_pos = np.argsort(-np.abs(corr_g_pos))
+    label_g_pos = 'p-value <= 0.05 (corr >= 0)'
 
-        corr_g_neg_curves_x = temporal_x[idxs_g_neg]
-        corr_g_neg_curves_y = temporal_y[idxs_g_neg]
+    idxs_g_neg = np.logical_and(p_vals <= 0.05, corrs < 0)
+    corr_g_neg = corrs[idxs_g_neg]
+    authors_neg = authors[idxs_g_neg]
+    Z_neg = Z[idxs_g_neg]
+    argsort_neg = np.argsort(-np.abs(corr_g_neg))
+    label_g_neg = 'p-value <= 0.05 (corr < 0)'
 
-        fig, axes = plt.subplots(2, 1, sharex=True)
-        time = np.arange(1995, 2011)
-        for x in corr_le_curves_x:
-            axes[0].plot(time, x, alpha=0.2, c='gray')
-        for y in corr_le_curves_y:
-            axes[1].plot(time, y, alpha=0.2, c='gray')
-        axes[0].set_title('x')
-        axes[1].set_title('y')
-        fig.savefig('temporal_series_data/' + filename + file + 'corr_le_samples.pdf')
-        fig.clf()
+    # # CURVES
+    # corr_le_curves_x = X[idxs_le]
+    # corr_le_curves_x = corr_le_curves_x[argsort_le]
+    # corr_le_curves_y = Y[idxs_le]
+    # corr_le_curves_y = corr_le_curves_y[argsort_le]
+    # authors_le = authors_le[argsort_le]
 
-        fig, axes = plt.subplots(2, 1, sharex=True)
-        time = np.arange(1995, 2011)
-        for x in corr_g_pos_curves_x:
-            axes[0].plot(time, x, alpha=0.2, c='orange')
-        for y in corr_g_pos_curves_y:
-            axes[1].plot(time, y, alpha=0.2, c='orange')
-        axes[0].set_title('x')
-        axes[1].set_title('y')
-        fig.savefig('temporal_series_data/' + filename + file + 'corr_g_pos_samples.pdf')
-        fig.clf()
+    # for
 
-        fig, axes = plt.subplots(2, 1, sharex=True)
-        time = np.arange(1995, 2011)
-        for x in corr_g_neg_curves_x:
-            axes[0].plot(time, x, alpha=0.2, c='blue')
-        for y in corr_g_neg_curves_y:
-            axes[1].plot(time, y, alpha=0.2, c='blue')
-        axes[0].set_title('x')
-        axes[1].set_title('y')
-        fig.savefig('temporal_series_data/' + filename + file + 'corr_g_neg_samples.pdf')
-        fig.clf()
+    corr_g_pos_curves_x = X[idxs_g_pos]
+    corr_g_pos_curves_x = corr_g_pos_curves_x[argsort_pos]
+    corr_g_pos_curves_y = Y[idxs_g_pos]
+    corr_g_pos_curves_y = corr_g_pos_curves_y[argsort_pos]
+    authos_pos = authors_pos[argsort_pos]
+    Z_pos = Z_pos[argsort_pos]
+
+    corr_g_neg_curves_x = X[idxs_g_neg]
+    corr_g_neg_curves_x = corr_g_neg_curves_x[argsort_neg]
+    corr_g_neg_curves_y = Y[idxs_g_neg]
+    corr_g_neg_curves_y = corr_g_neg_curves_y[argsort_neg]
+    authors_neg = authors_neg[argsort_neg]
+    Z_neg = Z_neg[argsort_neg]
+
+    time = np.arange(1995, 2008)
+    print('pos')
+    for x, y, n, a, c in zip(corr_g_pos_curves_x[:3], corr_g_pos_curves_y[:3], Z_pos[:3], authos_pos[:3], corr_g_pos[argsort_pos]):
+        plt.plot(time, x, label=x_label)
+        plt.plot(time, y, label=y_label)
+        plt.plot(time, n, label='cits without self-cits')
+        plt.title('\npos corr %.2f, new corr %.2f author %a' % (c, spearmanr(x, n)[0], a))
+        plt.legend()
+        plt.savefig('corr_analysis/%s_pos_corr_author_%s_2.pdf' % (filename, a))
+        plt.clf()
+        get_author_paper_example(data, a)
+
+    print('neg')
+    for x, y, n, a, c in zip(corr_g_neg_curves_x[:3], corr_g_neg_curves_y[:3], Z_neg[:3], authors_neg[:3], corr_g_neg[argsort_neg]):
+        plt.plot(time, x, label=x_label)
+        plt.plot(time, y, label=y_label)
+        plt.plot(time, n, label='cits without self-cits')
+        plt.title('\nneg corr %.2f, new corr %.2f, author %a' % (c, spearmanr(x, n)[0], a))
+        plt.legend()
+        plt.savefig('corr_analysis/%s_neg_corr_author_%s_2.pdf' % (filename, a))
+        plt.clf()
+        get_author_paper_example(data, a)
 
 
 def corr_temporal_series(pool, temporal_x, temporal_y, title, file):
@@ -436,46 +451,49 @@ def corr_temporal_series(pool, temporal_x, temporal_y, title, file):
 
     idxs_g_pos = np.logical_and(p_vals <= 0.05, corrs >= 0)
     corr_g_pos = corrs[idxs_g_pos]
-    label_g_pos = 'p-value <= 0.05 (corr >= 0)'
+    label_g_pos = r'p-value $\leq$ 0.05 (corr $\geq$ 0)' # <= >=
 
     idxs_g_neg = np.logical_and(p_vals <= 0.05, corrs < 0)
     corr_g_neg = corrs[idxs_g_neg]
-    label_g_neg = 'p-value <= 0.05 (corr < 0)'
+    label_g_neg = r'p-value $\leq$ 0.05 (corr < 0)'
 
     # HIST STACKED
-    plt.title(title)
+    # plt.title(title)
     plt.xlim(-1, 1)
     plt.hist([corr_g_pos, corr_g_neg, corr_le],
              bins=bins, alpha=0.6, stacked=True,
              color=['orange', 'blue', 'gray'],
              label=[label_g_pos, label_g_neg, label_le])
-    plt.legend(loc="upper right")
+    plt.legend(loc="upper right", prop={'size': 14})
+    plt.tick_params(labelsize=13)
 
     # CORR INFOS MEAN AND STD
     mu = np.nanmean(corrs)
     sigma = np.nanstd(corrs)
+    q_index = len(corr_g_pos) / len(corr_g_neg)
     textstr = '\n'.join((
         r'$\mu=%.2f$' % (mu,),
-        r'$\sigma=%.2f$' % (sigma,)))
+        r'$\sigma=%.2f$' % (sigma,),
+        r'q=%.2f' % (q_index,)))
     props = dict(boxstyle='round', facecolor='gray', alpha=0.3)
     ax = plt.gca()
     # place a text box in upper left in axes coords
-    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=13,
+    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
             verticalalignment='top', bbox=props)
 
     ax.text(0.45, 0.1, "%.2f%%" % (100 * len(corr_le) / len(corrs)),
-            color='gray', transform=ax.transAxes, fontsize=12)
+            color='gray', transform=ax.transAxes, fontsize=14)
     ax.text(0.85, 0.1, "%.2f%%" % (100 * len(corr_g_pos) / len(corrs)),
-            color='orange', transform=ax.transAxes, fontsize=12)
+            color='orange', transform=ax.transAxes, fontsize=14)
     ax.text(0.05, 0.1, "%.2f%%" % (100 * len(corr_g_neg) / len(corrs)),
-            color='blue', transform=ax.transAxes, fontsize=12)
+            color='blue', transform=ax.transAxes, fontsize=14)
 
     # NULL MODEL PLOT1
 
     x_bin_center = [(bins[i] + bins[i + 1]) / 2 for i in range(n_bins - 1)]
     plt.errorbar(x_bin_center, hist_ave, yerr=hist_std, color='red')
     plt.tight_layout()
-    plt.savefig('temporal_series_data/' + file + '.pdf')
+    plt.savefig('temporal_series_data/v5/' + file + '.pdf')
     plt.clf()
     return corrs
 
@@ -484,38 +502,34 @@ def filter_const(X, Y):
     X2 = []
     Y2 = []
     for x, y in zip(X, Y):
-        if np.count_nonzero(y == y[0]) == len(y) or np.count_nonzero(x == x[0]) == len(x):
-            continue
+        if np.count_nonzero(y[:-3] == y[0]) == (len(y)-3) or np.count_nonzero(x[:-3] == x[0]) == (len(x)-3):
+            continue # tira todo mundo que é um vetor constante
 
-        X2.append(x)
-        Y2.append(y)
+        X2.append(x[:-3])
+        Y2.append(y[:-3])
     X2 = np.asarray(X2)
     Y2 = np.asarray(Y2)
     return X2, Y2
 
 
-'''
+def authors_groups(files_valid_authors):
     paper_count = defaultdict(lambda: 0)
-    paper_cit_count = defaultdict(lambda: 0)
 
-    print(data.vcount())
     i = 0
     for key, valid_authors in files_valid_authors.items():
+        valid_authors.remove('')
         for paper in data.vs:
-            if paper['year'] < 1995 or paper['year'] > 2010:
+            if paper['year'] < 1991 or paper['year'] > 2010:
                 continue
             i += 1
             authors_idxs = paper['authors_idxs'].split(',')
             for author in authors_idxs:
                 if author in valid_authors:
                     paper_count[author] += 1
-                    paper_cit_count[author] += len(paper.neighbors(mode=IN))
             if i % 100000 == 0:
                 print(i)
-        save(paper_count, 'authors_paper_count.json')
-        save(paper_cit_count, 'authors_cit_count.json')
+        save(paper_count, 'authors_paper_count_1991.json')
         break
-    '''
 
 
 def plot_history(files_valid_authors, data, valid_key, filename):
@@ -570,190 +584,195 @@ if __name__ == '__main__':
 
     # dados gerados para os autores considerando o intervalo do passado de 5 anos
     # ESSES SÃO OS REGISTROS DO LADO ESQUERTO
-    authors_out_per_paper = load('data2/authors_out_freq_by_paper.json')
-    authors_in_per_paper = load('data2/authors_in_freq_by_paper.json')  # citações
-    authors_out = load('data2/authors_out_freq.json')
-    authors_in = load('data2/authors_in_freq.json')  # citações
+    authors_out_per_paper = load('data2/authors_out_freq_by_paper_v3.json')
+    authors_in_per_paper = load('data2/authors_in_freq_by_paper_v3.json')  # citações
+    authors_out = load('data2/authors_out_freq_v3.json')
+    authors_in = load('data2/authors_in_freq_v3.json')  # citações
+    authors_number_of_papers = load('data2/number_of_papers_v3.json')
 
     # ESSES SÃO OS REGISTROS DO LADO DIREITO
-    cit_from_citations = load('data2/cit_from_citations_per_paper.json')
-    cit_from_diversity = load('data2/cit_from_diversity.json')
-    cit_all_citations = load('data2/cit_all_citations_per_paper.json')
-    cit_all_diversity = load('data2/cit_all_diversity.json')
-    out_to_to_citations = load('data2/out_to_to_citations_per_paper.json')
-    out_to_to_diversity = load('data2/out_to_to_diversity.json')
+    cit_from_abs_citations = load('data2/cit_from_citations_v3.json')
+    cit_from_citations = load('data2/cit_from_citations_per_paper_v3.json') # TODO aqui é _per_paper
+    cit_from_diversity = load('data2/cit_from_diversity_v3.json')
+    out_to_to_citations = load('data2/out_to_to_citations_per_paper_v3.json')
+    out_to_to_diversity = load('data2/out_to_to_diversity_v3.json')
+    authors_number_of_papers_fut = load('data2/number_of_papers_fut_fut_v3.json')
 
-    authors_in_div = load('data2/authors_in_div.json')
-    authors_out_div = load('data2/authors_out_div.json')
+    authors_in_div = load('data2/authors_in_div_v3.json')
+    authors_out_div = load('data2/authors_out_div_v3.json')
 
     files_valid_authors = read_valid_authors()
     print(files_valid_authors.keys())
 
-    data = xnet.xnet2igraph('data/citation_network_ge1985_pacs.xnet')
+    data = xnet.xnet2igraph('data/citation_network_ge1991_pacs.xnet')
+    authors_groups(files_valid_authors)
 
-    paper_count = load('authors_paper_count.json')
-    paper_cit_count = load('authors_cit_count.json')
+    paper_count_1991 = load('authors_paper_count_1991.json')
 
-    authors_by_paper_count = get_authors_by_percentile(paper_count, 'paper_')
-    authors_by_paper_cit = get_authors_by_percentile(paper_cit_count, 'cit_')
-    files_valid_authors = {**authors_by_paper_count, **authors_by_paper_cit}
+    authors_by_paper_count_1991 = get_authors_by_percentile(paper_count_1991, 'paper_')
+
+    files_valid_authors = {**authors_by_paper_count_1991}
 
     files = list(files_valid_authors.keys())
     temporal_series_div_out = dict()
     temporal_series_div_in = dict()
     temporal_series_in = dict()
+    temporal_series_in_abs = dict()
     temporal_series_out = dict()
+    temporal_series_numb_papers = dict()
 
+    future_from_to_cit_abs = dict()
     future_from_to_cit = dict()
     future_from_to_div = dict()
     future_out_to_to_ref = dict()
     future_out_to_to_div = dict()
-    for file, valid_authors in files_valid_authors.items():
-        temporal_series_div_out[file] = get_temporal_series(valid_authors, authors_out_div, 1995)
-        temporal_series_div_in[file] = get_temporal_series(valid_authors, authors_in_div, 1995)
-        temporal_series_in[file] = get_temporal_series(valid_authors, authors_in_per_paper, 1995)
-        temporal_series_out[file] = get_temporal_series(valid_authors, authors_out_per_paper, 1995)
+    future_number_of_papers = dict()
 
-        future_from_to_cit[file] = get_temporal_series(valid_authors, cit_from_citations, 1995)
-        future_from_to_div[file] = get_temporal_series(valid_authors, cit_from_diversity, 1995)
-        future_out_to_to_ref[file] = get_temporal_series(valid_authors, out_to_to_citations, 1995)
-        future_out_to_to_div[file] = get_temporal_series(valid_authors, out_to_to_diversity, 1995)
+    for file, valid_authors in files_valid_authors.items():
+
+        temporal_series_div_out[file] = get_temporal_series(valid_authors, authors_out_div)
+        temporal_series_div_in[file] = get_temporal_series(valid_authors, authors_in_div)
+        temporal_series_in[file] = get_temporal_series(valid_authors, authors_in_per_paper)
+        temporal_series_in_abs[file] = get_temporal_series(valid_authors, authors_in)
+        temporal_series_out[file] = get_temporal_series(valid_authors, authors_out_per_paper)
+        temporal_series_numb_papers[file] = get_temporal_series(valid_authors, authors_number_of_papers)
+
+        future_from_to_cit_abs[file] = get_temporal_series(valid_authors, cit_from_abs_citations)
+        future_from_to_cit[file] = get_temporal_series(valid_authors, cit_from_citations)
+        future_from_to_div[file] = get_temporal_series(valid_authors, cit_from_diversity)
+        future_out_to_to_ref[file] = get_temporal_series(valid_authors, out_to_to_citations)
+        future_out_to_to_div[file] = get_temporal_series(valid_authors, out_to_to_diversity)
+        future_number_of_papers[file] = get_temporal_series(valid_authors, authors_number_of_papers_fut)
 
     # plot_history(files_valid_authors, data, 'paper', 'authors_paper_count_history.pdf')
     # plot_history(files_valid_authors, data, 'cit', 'authors_cit_history.pdf')
 
-    pool = multiprocessing.Pool(processes=6)
+    pool = multiprocessing.Pool(processes=8)
 
-    # corr_temporal_series_curves_samples(pool, files, temporal_series_out, future_from_to_cit,
-    #                             'Correlation between refs(PAST->PAST) and cit(FUT->PAST)',
-    #                             'corr_ref_past_cit_fut_')
-    #
-    # corr_temporal_series_curves_samples(pool, files, temporal_series_div_out, future_from_to_cit,
-    #                             'Correlation between div out(PAST->PAST) and cit(FUT->PAST)',
-    #                             'corr_div_out_past_cit_fut_')
-    #
-    # corr_temporal_series_curves(pool, files, temporal_series_out, future_from_to_cit,
-    #                             'Correlation between refs(PAST->PAST) and cit(FUT->PAST)',
-    #                             'corr_ref_past_cit_fut_')
-    # corr_temporal_series_curves_cit_ref(pool, files, temporal_series_out, future_from_to_cit,
-    #                             'Correlation between refs(PAST->PAST) and cit(FUT->PAST)',
-    #                             'corr_ref_past_cit_fut_')
-
+    # random_state = RandomState(seed=9)
     for file in files:
         print(file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_div_out[file], future_out_to_to_ref[file]),
                              'Correlation between div out(PAST->PAST) and refs(FUT->FUT)',
-                             'corr_div_out_past_ref_fut_%s' % file)
+                             'corr_div_out_past_ref_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_div_out[file], future_out_to_to_div[file]),
                             'Correlation between div out(PAST->PAST) and div out(FUT->FUT)',
-                            'corr_div_out_past_div_out_fut_%s' % file)
+                            'corr_div_out_past_div_out_fut_%s_pacs_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_in[file], future_out_to_to_div[file]),
                             'Correlation between cit(PAST->PAST) and div out(FUT->FUT)',
-                            'corr_cit_past_div_out_fut_%s' % file)
+                            'corr_cit_past_div_out_fut_%s_pacs_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_in_abs[file], future_out_to_to_div[file]),
+                            'Correlation between cit(PAST->PAST) and div out(FUT->FUT)',
+                            'corr_cit_abs_past_div_out_fut_%s_pacs_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_div_in[file], future_out_to_to_div[file]),
                              'Correlation between div in(PAST->PAST) and div out(FUT->FUT)',
-                             'corr_div_in_div_out_fut_%s' % file)
+                             'corr_div_in_div_out_fut_%s_pacs_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_in[file], future_out_to_to_ref[file]),
                              'Correlation between cit(PAST->PAST) and refs(FUT->FUT)',
-                             'corr_cit_past_ref_fut_%s' % file)
+                             'corr_cit_past_ref_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_in_abs[file], future_out_to_to_ref[file]),
+                             'Correlation between cit(PAST->PAST) and refs(FUT->FUT)',
+                             'corr_cit_abs_past_ref_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_div_in[file], future_out_to_to_ref[file]),
                              'Correlation between div in(PAST->PAST) and refs(FUT->FUT)',
-                             'corr_div_in_past_ref_fut_%s' % file)
+                             'corr_div_in_past_ref_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_div_out[file], future_from_to_cit[file]),
                              'Correlation between div out(PAST->PAST) and cit(FUT->PAST)',
-                             'corr_div_out_past_cit_from_fut_%s' % file)
+                             'corr_div_out_past_cit_from_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_div_out[file], future_from_to_cit_abs[file]),
+                             'Correlation between div out(PAST->PAST) and cit(FUT->PAST)',
+                             'corr_div_out_past_cit_abs_from_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_div_out[file], future_from_to_div[file]),
                              'Correlation between div out(PAST->PAST) and div in(FUT->PAST)',
-                             'corr_div_out_past_div_in_fut_%s' % file)
+                             'corr_div_out_past_div_in_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_out[file], future_from_to_cit[file]),
                              'Correlation between refs(PAST->PAST) and cit(FUT->PAST)',
-                             'corr_ref_past_cit_fut_%s' % file)
+                             'corr_ref_past_cit_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_out[file], future_from_to_cit_abs[file]),
+                             'Correlation between refs(PAST->PAST) and cit(FUT->PAST)',
+                             'corr_ref_past_cit_abs_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_out[file], future_from_to_div[file]),
                              'Correlation between refs(PAST->PAST) and div in(FUT->PAST)',
-                             'corr_ref_past_div_in_fut_%s' % file)
+                             'corr_ref_past_div_in_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_div_in[file], future_from_to_cit[file]),
                              'Correlation between div in(PAST->PAST) and cit(FUT->PAST)',
-                             'corr_div_in_past_cit_from_fut_%s' % file)
+                             'corr_div_in_past_cit_from_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_div_in[file], future_from_to_cit_abs[file]),
+                             'Correlation between div in(PAST->PAST) and cit(FUT->PAST)',
+                             'corr_div_in_past_cit_abs_from_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_div_in[file], future_from_to_div[file]),
                              'Correlation between div in(PAST->PAST) and div in(FUT->PAST)',
-                             'corr_div_in_past_div_in_fut_%s' % file)
+                             'corr_div_in_past_div_in_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_in[file], future_from_to_cit[file]),
                              'Correlation between cit(PAST->PAST) and cit(FUT->PAST)',
-                             'corr_cit_past_cit_fut_%s' % file)
+                             'corr_cit_past_cit_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_in_abs[file], future_from_to_cit_abs[file]),
+                             'Correlation between cit(PAST->PAST) and cit(FUT->PAST)',
+                             'corr_cit_abs_past_cit_abs_fut_%s_1991' % file)
 
         corr_temporal_series(pool, *filter_const(temporal_series_in[file], future_from_to_div[file]),
                              'Correlation between cit(PAST->PAST) and div in(FUT->PAST)',
-                             'corr_cit_past_div_in_fut_%s' % file)
+                             'corr_cit_past_div_in_fut_%s_1991' % file)
 
-    random_state = RandomState(seed=10)
-    for file_to_save in files:
-        print(file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_div_out[file], future_out_to_to_ref[file]),
-                                      'Correlation between div out(PAST->PAST) and refs(FUT->FUT)',
-                                      'corr_div_out_past_ref_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_div_out[file], future_out_to_to_div[file]),
-                                      'Correlation between div out(PAST->PAST) and div out(FUT->FUT)',
-                                      'corr_div_out_past_div_out_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_in[file], future_out_to_to_div[file]),
-                                      'Correlation between cit(PAST->PAST) and div out(FUT->FUT)',
-                                      'corr_cit_past_div_out_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_div_in[file], future_out_to_to_div[file]),
-                                      'Correlation between div in(PAST->PAST) and div out(FUT->FUT)',
-                                      'corr_div_in_div_out_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_in[file], future_out_to_to_ref[file]),
-                                      'Correlation between cit(PAST->PAST) and refs(FUT->FUT)',
-                                      'corr_cit_past_ref_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_div_in[file], future_out_to_to_ref[file]),
-                                      'Correlation between div in(PAST->PAST) and refs(FUT->FUT)',
-                                      'corr_div_in_past_ref_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_div_out[file], future_from_to_cit[file]),
-                                      'Correlation between div out(PAST->PAST) and cit(FUT->PAST)',
-                                      'corr_div_out_past_cit_from_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_div_out[file], future_from_to_div[file]),
-                                      'Correlation between div out(PAST->PAST) and div in(FUT->PAST)',
-                                      'corr_div_out_past_div_in_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_out[file], future_from_to_cit[file]),
-                                      'Correlation between refs(PAST->PAST) and cit(FUT->PAST)',
-                                      'corr_ref_past_cit_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_out[file], future_from_to_div[file]),
-                                      'Correlation between refs(PAST->PAST) and div in(FUT->PAST)',
-                                      'corr_ref_past_div_in_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_div_in[file], future_from_to_cit[file]),
-                                      'Correlation between div in(PAST->PAST) and cit(FUT->PAST)',
-                                      'corr_div_in_past_cit_from_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_div_in[file], future_from_to_div[file]),
-                                      'Correlation between div in(PAST->PAST) and div in(FUT->PAST)',
-                                      'corr_div_in_past_div_in_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_in[file], future_from_to_cit[file]),
-                                      'Correlation between cit(PAST->PAST) and cit(FUT->PAST)',
-                                      'corr_cit_past_cit_fut_%s' % file_to_save)
-        corr_temporal_series_col_null(pool, random_state,
-                                      *filter_const(temporal_series_in[file], future_from_to_div[file]),
-                                      'Correlation between cit(PAST->PAST) and div in(FUT->PAST)',
-                                      'corr_cit_past_div_in_fut_%s' % file_to_save)
+        corr_temporal_series(pool, *filter_const(temporal_series_in_abs[file], future_from_to_div[file]),
+                             'Correlation between cit(PAST->PAST) and div in(FUT->PAST)',
+                             'corr_cit_abs_past_div_in_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_numb_papers[file], future_out_to_to_ref[file]),
+                             'Correlation between papers(PAST->PAST) and refs(FUT->FUT)',
+                             'corr_papers_past_ref_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_numb_papers[file], future_out_to_to_div[file]),
+                             'Correlation between papers(PAST->PAST) and div out(FUT->FUT)',
+                             'corr_papers_past_div_out_fut_%s_pacs_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_numb_papers[file], future_from_to_cit[file]),
+                             'Correlation between papers(PAST->PAST) and cit(FUT->PAST)',
+                             'corr_papers_past_cit_from_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_numb_papers[file], future_from_to_cit_abs[file]),
+                             'Correlation between papers(PAST->PAST) and cit(FUT->PAST)',
+                             'corr_papers_past_cit_abs_from_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_numb_papers[file], future_from_to_div[file]),
+                             'Correlation between papers(PAST->PAST) and div in(FUT->PAST)',
+                             'corr_papers_past_div_in_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_div_out[file], future_number_of_papers[file]),
+                             'Correlation between div out(PAST->PAST) and papers(FUT->FUT)',
+                             'corr_div_out_past_papers_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_in[file], future_number_of_papers[file]),
+                            'Correlation between cit(PAST->PAST) and papers(FUT->FUT)',
+                            'corr_cit_past_papers_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_in_abs[file], future_number_of_papers[file]),
+                            'Correlation between cit(PAST->PAST) and papers(FUT->FUT)',
+                            'corr_cit_abs_past_papers_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_div_in[file], future_number_of_papers[file]),
+                             'Correlation between div in(PAST->PAST) and papers(FUT->FUT)',
+                             'corr_div_in_papers_fut_%s_1991' % file)
+
+        corr_temporal_series(pool, *filter_const(temporal_series_out[file], future_number_of_papers[file]),
+                             'Correlation between refs(PAST->PAST) and papers(FUT->PAST)',
+                             'corr_ref_past_papers_fut_%s_1991' % file)
