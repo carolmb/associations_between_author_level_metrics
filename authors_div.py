@@ -190,7 +190,7 @@ if __name__ == '__main__':
     history_in = load(history_in_filename)
     history_out = load(history_out_filename)
 
-    # authors_out_div = util.authors_metric(history_out, util.get_div)  # diversidade das publicações citadas (author out)
+    # authors_out_div = valid_authors_min_criteria_in_out_  # diversidade das publicações citadas (author out)
     # save(authors_out_div, 'data2\\authors_out_div_v3.json')
     # authors_in_div = util.authors_metric(history_in, util.get_div)  # diversidade das publicações que citam o autor (author in)
     # save(authors_in_div, 'data2\\authors_in_div_v3.json')
