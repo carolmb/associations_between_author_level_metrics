@@ -32,7 +32,9 @@
 *.app
 
 *.xnet
-
+*.json
+*.csv
+*.txt
 # Folder
 data/
 Infomap/

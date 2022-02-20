@@ -67,7 +67,7 @@ def get_authors_by_percentile(author_values, key_header):
     for c in unique_values:
         authors_by_class[key_header + str(c)] = authors[author2class == c]
         temp = values[author2class == c]
-        print(c, min(temp),max(temp))
+        print(c, min(temp), max(temp))
     for key_class, authors in authors_by_class.items():
         print(key_class, len(authors))
     return authors_by_class
